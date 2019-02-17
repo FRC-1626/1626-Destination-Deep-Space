@@ -28,6 +28,8 @@ import com.zephyr.pixy.*;
 import frc.robot.Toggle;
 import edu.wpi.first.wpilibj.Solenoid;
 import frc.robot.PairOfMotors;
+import java.util.List;
+import java.util.ArrayList;
 
 /*	
 
@@ -50,14 +52,13 @@ public class Robot extends TimedRobot {
 	private SpeedControllerGroup leftSpeed;
 	private SpeedControllerGroup rightSpeed;
 	private DifferentialDrive drive;
-	private SpeedController leftElevator;
-	private SpeedController rightElevator;
-	private WPI_TalonSRX frontElevator;
-	private WPI_TalonSRX backElevator;
-	private Spark Elevator;
-	private TalonSRX inOutMotor0;
-	private TalonSRX inOutMotor1;
-	private DoubleSolenoid elevatorBrake;
+	private WPI_TalonSRX ballHolder;
+	private WPI_TalonSRX elevator;
+	private WPI_TalonSRX leftArm;
+	private WPI_TalonSRX rightArm;
+	private WPI_TalonSRX inOutMotor;
+//	private TalonSRX inOutMotor1;
+//	private DoubleSolenoid elevatorBrake;
 	int autoLoopCounter;
 	private Thread autoThread;
 	private ControlMode Current;
@@ -75,9 +76,11 @@ public class Robot extends TimedRobot {
 	private PairOfMotors testPairOfMotors;
 	private int Claw = 1;
 
-	private boolean togglestate;
+	private List<PairOfMotors> motorPairList;
+
 	Toggle backwards;
 	Toggle doMotorBreakIn = new Toggle();
+	Toggle clawState;
 
 	@Override
 	public void robotInit() {
@@ -89,6 +92,7 @@ public class Robot extends TimedRobot {
 		driverRight = new Joystick(1);
 		xbox = new XboxController(2);
 		backwards = new Toggle();
+		clawState = new Toggle();
 
 		System.out.println("initializing actions...");
 		actions = new ActionRecorder().
@@ -121,39 +125,43 @@ public class Robot extends TimedRobot {
 
 		if (!prototype) {
 			System.err.println("Initializing Speed Controllers");
-			frontLeftSpeed		= new WPI_TalonSRX(14);
-			backLeftSpeed		= new WPI_TalonSRX(15);
-			frontRightSpeed		= new WPI_TalonSRX(13);
-			backRightSpeed		= new WPI_TalonSRX(12);
-			leftElevator		= new WPI_TalonSRX(0); 
-			rightElevator		= new WPI_TalonSRX(1); 
+			frontLeftSpeed		= new CANSparkMax(20, MotorType.kBrushless);
+			backLeftSpeed		= new CANSparkMax(1, MotorType.kBrushless);
+			frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
+			backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
+			leftArm				= new WPI_TalonSRX(12); 
+			rightArm			= new WPI_TalonSRX(13);
+			elevator			= new WPI_TalonSRX(6);
+			inOutMotor			= new WPI_TalonSRX(7);
+			ballHolder			= new WPI_TalonSRX(1); // Talon number is placeholder
 		} else {
 			System.err.println("Initializing Prototype Speed Controllers");
-			frontLeftSpeed		= new CANSparkMax(12, MotorType.kBrushed);
-			backLeftSpeed		= new CANSparkMax(13, MotorType.kBrushed);
-			frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushed);
-			backRightSpeed		= new CANSparkMax(15, MotorType.kBrushed);
-			leftElevator		= new WPI_TalonSRX(0); 
-			rightElevator		= new WPI_TalonSRX(1); 
+			frontLeftSpeed		= new WPI_TalonSRX(2);
+			backLeftSpeed		= new WPI_TalonSRX(3);
+			frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
+			backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
+			elevator			= new WPI_TalonSRX(6); 
+			inOutMotor			= new WPI_TalonSRX(7);
+			ballHolder			= new WPI_TalonSRX(1); // Talon number is placeholder
 		}
 
-		compressor = new Compressor(21);
+		compressor = new Compressor();
 		pressureSensor = new AnalogInput(0);
 		
-		Solenoid Solenoid0 = new Solenoid(21, 0);
+		Solenoid Solenoid0 = new Solenoid(0);
 		Solenoid0.set(true);
 		Solenoid0.set(false);
 	
 		    
-		Solenoid Solenoid1 = new Solenoid(21, 1);
+		Solenoid Solenoid1 = new Solenoid(1);
 		Solenoid1.set(true);
 		Solenoid1.set(false);
 
-		Solenoid Solenoid2 = new Solenoid(21, 2);
+		Solenoid Solenoid2 = new Solenoid(2);
 		Solenoid2.set(true);
 		Solenoid2.set(false);
 
-		Solenoid Solenoid3 = new Solenoid(21, 3);
+		Solenoid Solenoid3 = new Solenoid(3);
 		Solenoid3.set(true);
 		Solenoid3.set(false);
 
@@ -165,25 +173,31 @@ public class Robot extends TimedRobot {
 		System.err.println("Initializing PixyCam");
 		pixycam = new Pixy(Port.kOnboardCS0, 0);
 
-		testPairOfMotors = new PairOfMotors(2, 3);
+//		testPairOfMotors = new PairOfMotors(2, 3);
 
-		frontElevator		= new WPI_TalonSRX(2);
-		backElevator		= new WPI_TalonSRX(3);
-		inOutMotor0			= new TalonSRX(8);
-		inOutMotor1			= new TalonSRX(11);
-		Elevator			= new Spark(9);
 		
-		inOutMotor1.setInverted(true);
-		frontElevator.follow(backElevator);
+		inOutMotor.setInverted(true);
+//		frontElevator.follow(backElevator);
 		double value = 1; 
-		backElevator.configSetParameter(ParamEnum.eClearPositionOnQuadIdx, value, 0x00, 0x00, 10);
-		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitF, value, 0x00, 0x00, 10);
-		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitR, value, 0x00, 0x00, 10);
+//		backElevator.configSetParameter(ParamEnum.eClearPositionOnQuadIdx, value, 0x00, 0x00, 10);
+//		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitF, value, 0x00, 0x00, 10);
+//		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitR, value, 0x00, 0x00, 10);
 
+
+		motorPairList = new ArrayList<PairOfMotors>();
+
+		motorPairList.add(new PairOfMotors("LeftDrive", 0, 1));
+		motorPairList.add(new PairOfMotors("RightDrive", 14, 15));
+		motorPairList.add(new PairOfMotors("ArmDrive", 6,7));
+		motorPairList.add(new PairOfMotors("Climb", 12,13));
 	}
 
 	@Override
-	public void robotPeriodic() {}
+	public void robotPeriodic() {
+		for (PairOfMotors motorPair : motorPairList) {
+
+		}
+	}
 
 	@Override
 	public void autonomousInit() {
@@ -219,22 +233,22 @@ public class Robot extends TimedRobot {
 		try {
 
 			actions.input(new DriverInput()
-				.withInput("Operator-X-Button",		xbox.getXButton())
-				.withInput("Operator-Y-Button",		xbox.getYButton())
-				.withInput("Operator-A-Button", 	xbox.getAButton())
-				.withInput("Operator-B-Button",		xbox.getBButton())
-				.withInput("Operator-Start-Button",	xbox.getRawButton(8))
+				.withInput("Operator-X-Button",		xbox.getXButton()) // used
+				.withInput("Operator-Y-Button",		xbox.getYButton()) // used
+				.withInput("Operator-A-Button", 	xbox.getAButton()) // used
+				.withInput("Operator-B-Button",		xbox.getBButton()) // used
+				.withInput("Operator-Start-Button",	xbox.getRawButton(8)) 
 				.withInput("Operator-Back-Button",	xbox.getRawButton(7))
-				.withInput("Elevator-Back",  		xbox.getTriggerAxis(Hand.kLeft))	
-				.withInput("Elevator-Forward",		xbox.getTriggerAxis(Hand.kRight))	
-				.withInput("Operator-DPad",			xbox.getPOV())
-				.withInput("Driver-Left", 			driverLeft.getRawAxis(1))
-				.withInput("Driver-Right", 			driverRight.getRawAxis(1))
-				.withInput("Driver-Left-Trigger", 	driverLeft.getRawButton(1))
-				.withInput("Driver-Right-Trigger", 	driverRight.getRawButton(1))
+				.withInput("Elevator-Back",  		xbox.getTriggerAxis(Hand.kLeft))	// used
+				.withInput("Elevator-Forward",		xbox.getTriggerAxis(Hand.kRight))	// used
+				.withInput("Operator-DPad",			xbox.getPOV()) // used
+				.withInput("Driver-Left", 			driverLeft.getRawAxis(1)) // used
+				.withInput("Driver-Right", 			driverRight.getRawAxis(1)) // used
+				.withInput("Driver-Left-Trigger", 	driverLeft.getRawButton(1)) // used
+				.withInput("Driver-Right-Trigger", 	driverRight.getRawButton(1)) // used
 				.withInput("Operator-Left-Bumper",	xbox.getBumper(Hand.kLeft))
 				.withInput("Operator-Right-Bumper", xbox.getBumper(Hand.kRight))
-				.withInput("Driver-Left-8", 		driverLeft.getRawButton(8))
+				.withInput("Driver-Left-8", 		driverLeft.getRawButton(8)) // used
 			);	
 		
 		} catch (IllegalAccessException e) {
@@ -247,23 +261,15 @@ public class Robot extends TimedRobot {
 		
 		pixycam.getAllDetectedObjects();
 		
-		if (testPairOfMotors.isCurrentDifferent()) {
-			SmartDashboard.putString(
-				"DB/String 3", 
-				"Current on ports " + testPairOfMotors.x + " and " 
-			);
-			SmartDashboard.putString(
-				"DB/String 4",
-				testPairOfMotors.y + " are different!"
-			);
-		} else {
-			SmartDashboard.putString("DB/String 3", "");
-			SmartDashboard.putString("DB/String 4", "");
-		}
-
 	}
 
-	public void disabledInit() {actions.disabledInit();}
+	public void disabledInit() {
+		actions.disabledInit();
+	}
+
+	public void disabledPeriodic() {
+		actions.disabledPeriodic();
+	}
 
 	public void robotOperation(DriverInput input) {
 		
@@ -280,74 +286,78 @@ public class Robot extends TimedRobot {
 		if (!backwards.getState()) drive.tankDrive(-1 * 1 * leftAxis, -1 * 1 * rightAxis, false);
 		else drive.tankDrive(1 * rightAxis, 1 * leftAxis, false);
 
-		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
+//		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
 
 		double elevatorAxis = input.getAxis("Elevator-Forward") - input.getAxis("Elevator-Back");
 		if (Math.abs(elevatorAxis) > 0.10) {
-			if (Math.abs(previousElevator) < 0.10) elevatorBrake.set (Value.kForward);
-			else backElevator.set(ControlMode.PercentOutput, elevatorAxis);	
+//			if (Math.abs(previousElevator) < 0.10) elevatorBrake.set (Value.kForward);
+			elevator.set(ControlMode.PercentOutput, elevatorAxis);	
 		} else {
-			elevatorBrake.set(Value.kReverse);
-			backElevator.set(ControlMode.PercentOutput, 0);
+//			elevatorBrake.set(Value.kReverse);
+			elevator.set(ControlMode.PercentOutput, 0);
 		}
 
 		previousElevator = elevatorAxis;
-		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
+//		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
 
 		int dpadAxis = (int) input.getAxis("Operator-DPad");
 		switch(dpadAxis){
 		case 0:
-			backElevator.set(ControlMode.Position, 0);
+			elevator.set(ControlMode.Position, 0);
 			break;
 		case 90:
-			backElevator.set(ControlMode.Position, 100);
+			elevator.set(ControlMode.Position, 100);
 			break;
 		case 180:
-			backElevator.set(ControlMode.Position, 200);
+			elevator.set(ControlMode.Position, 200);
 			break;
 		case 270:
-			backElevator.set(ControlMode.Position, 300);
+			elevator.set(ControlMode.Position, 300);
 			break;
 		}
 		
-
-	if(input.getButton("Operator-Y-Button"))
-		{
-		Claw = Claw*-1;
-		if(Claw == 1 && togglestate)
+		clawState.input(input.getButton("Operator-Y-Button"));
+		if(clawState.getState())
 			{
-				Solenoid0.set(true);						// toggle may be incorrect; program for working with claw.
+			Claw = Claw*-1;
+			if(Claw == 1)
+				{
+				Solenoid0.set(true);
 				Solenoid1.set(true);
 				Solenoid2.set(true);
-			}
-		else									
-			{
+				}
+			else
+				{
 				Solenoid0.set(false);
 				Solenoid1.set(false);
 				Solenoid2.set(false);
+				}
 			}
-			togglestate = true;
-		}
-	else
-		{
-			togglestate = false;
-		}
-
-
-		SmartDashboard.putString("DB/String 6", "" + backElevator.getSelectedSensorPosition(0));
+		
+		if(input.getButton("Driver-Right-Trigger"))
+			{
+			ballHolder.set(.99);
+			}
+		if(input.getButton("Driver-Left-Trigger"))
+			{
+			ballHolder.set(-.99);
+			}
+		
+		
+		SmartDashboard.putString("DB/String 6", "" + elevator.getSelectedSensorPosition(0));
 
 		if (input.getButton("Operator-X-Button")) {
-			inOutMotor0.set(ControlMode.PercentOutput, .99);
-			inOutMotor1.set(ControlMode.PercentOutput, -.99);
+			inOutMotor.set(ControlMode.PercentOutput, .99);
+//			inOutMotor1.set(ControlMode.PercentOutput, -.99);
 		} else if (input.getButton("Operator-A-Button")) {
-			inOutMotor0.set(ControlMode.PercentOutput, -.50);
-			inOutMotor1.set(ControlMode.PercentOutput, .50);
+			inOutMotor.set(ControlMode.PercentOutput, -.50);
+//			inOutMotor1.set(ControlMode.PercentOutput, .50);
 		} else if (input.getButton("Operator-B-Button")) {
-			inOutMotor0.set(ControlMode.PercentOutput, -.99);
-			inOutMotor1.set(ControlMode.PercentOutput, .99);
+			inOutMotor.set(ControlMode.PercentOutput, -.99);
+//			inOutMotor1.set(ControlMode.PercentOutput, .99);
 		} else {
-			inOutMotor0.set(ControlMode.PercentOutput, 0);	
-			inOutMotor1.set(ControlMode.PercentOutput, 0);	
+			inOutMotor.set(ControlMode.PercentOutput, 0.0);	
+//			inOutMotor1.set(ControlMode.PercentOutput, 0.0);	
 		}
 
 	}
@@ -356,10 +366,11 @@ public class Robot extends TimedRobot {
 
 /*
 
-if(imput.getButton("Operator-Y-Button"))
+clawState.input(input.getButton("Operator-Y-Button"));
+if(clawState.getState())
 	{
 	Claw = Claw*-1;
-	if(Claw == 1 && togglestate)
+	if(Claw == 1)
 		{
 			Solenoid0.set(true);
 			Solenoid1.set(true);
@@ -371,11 +382,6 @@ if(imput.getButton("Operator-Y-Button"))
 			Solenoid1.set(false);
 			Solenoid2.set(false);
 		}
-		togglestate = true;
-	}
-else
-	{
-		togglestate = false;
 	}
 
 */

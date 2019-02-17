@@ -33,31 +33,54 @@ import frc.robot.Toggle;
 //  if the currents they are receiving are within 10% difference of each other
 public class PairOfMotors {
 
-    private PowerDistributionPanel PDB = new PowerDistributionPanel(22);
-    public double Current;
-    int x, y;
+    private static PowerDistributionPanel PDB = new PowerDistributionPanel();
 
-    public PairOfMotors(int Breaker1, int Breaker2) {
+    private String pairName;
+    int breakerPort1;
+    int breakerPort2;
+    double allowedDifference;
 
-        x = Breaker1;
-        y = Breaker2;
+    public PairOfMotors(String name, int breaker1, int breaker2) {
+
+        pairName = name;
+        breakerPort1 = breaker1;
+        breakerPort2 = breaker2;
+        allowedDifference=0.1;
    
     }
 
+    public PairOfMotors(String name, int breaker1, int breaker2, double alDiff) {
+
+        pairName = name;
+        breakerPort1 = breaker1;
+        breakerPort2 = breaker2;
+        allowedDifference=alDiff;
+   
+    }
+
+    public String getName() {
+        return pairName;
+    }
+
     public boolean isCurrentDifferent() {
-        double xCurrent = PDB.getCurrent(x);
-        double yCurrent = PDB.getCurrent(y);
+        double current1 = PDB.getCurrent(breakerPort1);
+        double current2 = PDB.getCurrent(breakerPort2);
 
-        SmartDashboard.putString("DB/String 5", "" + xCurrent);
-        SmartDashboard.putString("DB/String 6", "" + yCurrent);
+        SmartDashboard.putString("DB/String 5", "" + current1);
+        SmartDashboard.putString("DB/String 6", "" + current2);
 
-        boolean TheyreDifferent =
-            (xCurrent > (1.1 * yCurrent)) ||
-            (yCurrent > (1.1 * xCurrent));
+        double differenceRatio = (Math.max(current1, current2) - Math.min(current1, current2) ) / Math.max(current1, current2);
+        boolean TheyreDifferent = differenceRatio > allowedDifference;
 
-        if (TheyreDifferent) return true;
-        else return false;
-
+        if (TheyreDifferent) {
+            
+                SmartDashboard.putString(
+                    "Motors/" + pairName, 
+                    "Current difference is " + String.format("%.2f", 100.0*differenceRatio) );
+             
+        }
+        
+        return TheyreDifferent;
     }
 
 }

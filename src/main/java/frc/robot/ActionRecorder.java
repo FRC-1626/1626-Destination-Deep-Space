@@ -39,7 +39,7 @@ public class ActionRecorder
 	private StateButton downButton;
 	private StateButton recordButton;
 	private List<File> autoFileList;
-	private Map<String, Integer> autoFileIndex;
+	private int autoFileIndex;
 	private File fileToRecord=new File(autoDirName + "/" + SmartDashboard.getString("DB/String 0", "new_auto.csv")); 
 	
 	// For timing accuracy measurements
@@ -85,11 +85,7 @@ public class ActionRecorder
 		recording=false;
 		recordingReady=false;
 		
-		autoFileIndex = new HashMap<String, Integer>();
-		autoFileIndex.put("LL", 0);
-		autoFileIndex.put("LR", 0);
-		autoFileIndex.put("RL", 0);
-		autoFileIndex.put("RR", 0);
+		autoFileIndex = 0;
 		
 	}
 
@@ -179,22 +175,18 @@ public class ActionRecorder
 
 	public void displayNames()
 	{
-		for (String fieldString: autoFileIndex.keySet()) {
+		String name = "UNSET";
+		String tmp;
+		int afi = autoFileIndex;
 
-			String name = "";
-			String tmp = "";
-			
-			int afi = autoFileIndex.get(fieldString);
-			
-			if ((afi >= 0) && (afi < autoFileList.size())) {
+		if ((afi >= 0) && (afi < autoFileList.size())) {
 
-				File file = autoFileList.get(afi);
-				if ((file != null) && ((tmp=file.getName()) != null)) {
-					name = tmp;
-				}
+			File file = autoFileList.get(afi);
+			if ((file != null) && ((tmp=file.getName()) != null)) {
+				name = tmp;
 			}
 
-			SmartDashboard.putString("Auto/FileName" + fieldString, name);
+			SmartDashboard.putString("Auto/FileName" , name);
 		}
 	}
 	
@@ -321,41 +313,34 @@ public class ActionRecorder
 		displayNames();
 	}
 
-	public void disabledPeriodic(String selector)
+	public void disabledPeriodic()
 	{
 		
 		if ((recordButton != null) && recordButton.getState())
 		{
-			System.out.println("selecting " + selector);
 			toggleRecording();
 		}
 		
-		int afi = autoFileIndex.get(selector);
-		
 		if ((upButton != null) && upButton.getState())
 		{
-			if (afi < (autoFileList.size()-1))
+			if (autoFileIndex < (autoFileList.size()-1))
 			{
-				afi++;
-				autoFileIndex.put(selector, afi);
+				autoFileIndex++;
 				displayNames();
 			} else {
-				afi = autoFileList.size()-1;
-				autoFileIndex.put(selector, afi);
+				autoFileIndex = autoFileList.size()-1;
 				displayNames();
 			}
 		}
 		
 		if ((downButton != null) && downButton.getState())
 		{
-			if (afi > 0)
+			if (autoFileIndex > 0)
 			{
-				afi--;
-				autoFileIndex.put(selector, afi);
+				autoFileIndex--;
 				displayNames();
 			} else {
-				afi = 0;
-				autoFileIndex.put(selector, afi);
+				autoFileIndex = 0;
 				displayNames();
 			}
 		}
@@ -536,7 +521,7 @@ public class ActionRecorder
 
 	public void autonomousInit(String fieldData)
 	{
-		File autoFile = autoFileList.get(autoFileIndex.get(fieldData));
+		File autoFile = autoFileList.get(autoFileIndex);
 		System.out.println("Entering autonomous init with " + autoFile.getAbsoluteFile());
 		if (autoFile.canRead())
 		{
