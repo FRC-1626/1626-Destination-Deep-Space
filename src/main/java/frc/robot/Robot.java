@@ -75,7 +75,6 @@ public class Robot extends TimedRobot {
 	private Solenoid Solenoid3;
 	private double previousElevator;
 	private PairOfMotors testPairOfMotors;
-	private int Claw = 1;
 
 	private List<PairOfMotors> motorPairList;
 
@@ -147,20 +146,19 @@ public class Robot extends TimedRobot {
 		compressor = new Compressor();
 		pressureSensor = new AnalogInput(0);
 		
-		Solenoid Solenoid0 = new Solenoid(0);
+		Solenoid0 = new Solenoid(0);
 		Solenoid0.set(true);
 		Solenoid0.set(false);
-	
-		    
-		Solenoid Solenoid1 = new Solenoid(1);
+
+		Solenoid1 = new Solenoid(1);
 		Solenoid1.set(true);
 		Solenoid1.set(false);
 
-		Solenoid Solenoid2 = new Solenoid(2);
+		Solenoid2 = new Solenoid(2);
 		Solenoid2.set(true);
 		Solenoid2.set(false);
 
-		Solenoid Solenoid3 = new Solenoid(3);
+		Solenoid3 = new Solenoid(3);
 		Solenoid3.set(true);
 		Solenoid3.set(false);
 
@@ -214,21 +212,23 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void autonomousPeriodic() {
-		
+	
 		String itemLocationString = gameData.substring(0, 2) + startingPosition;
 		try{
 			if (actions != null) actions.longPlayback(this, -1);
 			else Timer.delay(0.010);
 		}catch (Exception e) { 
 			System.out.println("AP: " + e.toString()); 
-		} pixycam.getAllDetectedObjects();
+		}  // pixycam.getAllDetectedObjects();
 
-  	}
+  	} 
 
 	@Override
 	public void teleopInit() {
 		DriverInput.setRecordTime();
 		actions.teleopInit();
+
+		System.err.println("Solenoid 0 " + Solenoid0);
 	}
 
 	@Override
@@ -264,7 +264,7 @@ public class Robot extends TimedRobot {
 			e.printStackTrace();
 		}
 		
-		pixycam.getAllDetectedObjects();
+		// pixycam.getAllDetectedObjects();
 		
 	}
 
@@ -336,21 +336,33 @@ public class Robot extends TimedRobot {
 		clawState.input(input.getButton("Operator-Y-Button"));
 		if(clawState.getState())
 			{
-			Claw = Claw*-1;
-			if(Claw == 1)
-				{
-				Solenoid0.set(true);
-				Solenoid1.set(true);
-				Solenoid2.set(true);
-				Solenoid3.set(true);
-				}
+					try
+					{
+					Solenoid0.set(true);
+					Solenoid1.set(true);
+					Solenoid2.set(true);
+					Solenoid3.set(true);
+					}
+					catch(Exception E)
+					{
+					System.err.println("In claw = 1 " +  E);
+					System.err.println("Solenoid 0 " + Solenoid0);
+					}	
+			}
 			else
-				{
-				Solenoid0.set(false);
-				Solenoid1.set(false);
-				Solenoid2.set(false);
-				Solenoid3.set(false);
-				}
+			{
+					try
+					{
+					Solenoid0.set(false);
+					Solenoid1.set(false);
+					Solenoid2.set(false);
+					Solenoid3.set(false);
+					}
+					catch(Exception E)
+					{
+					System.err.println("In claw = -1 " +  E);
+					System.err.println("Solenoid 0 " + Solenoid0);
+					}
 			}
 		
 		if(input.getButton("Operator-Right-Bumper"))
