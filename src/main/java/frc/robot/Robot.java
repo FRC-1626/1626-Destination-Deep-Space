@@ -1,12 +1,12 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import com.ctre.phoenix.ParamEnum;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
@@ -26,9 +26,11 @@ import java.lang.reflect.InvocationTargetException;
 import edu.wpi.first.cameraserver.*;
 import com.zephyr.pixy.*;
 import frc.robot.Toggle;
-import edu.wpi.first.wpilibj.Solenoid;
 import frc.robot.PairOfMotors;
 import java.util.List;
+
+import javax.lang.model.util.ElementScanner6;
+
 import java.util.ArrayList;
 
 /*	
@@ -41,7 +43,7 @@ By Jonathan Heitz, Daniel Lucash, Christopher Nokes, Benjamin Ulrich, and SJHS F
 
 public class Robot extends TimedRobot {
 
-	private boolean prototype = true;
+	private boolean prototype = false;
 	private XboxController xbox;
 	private Joystick driverLeft;
 	private Joystick driverRight;
@@ -52,11 +54,10 @@ public class Robot extends TimedRobot {
 	private SpeedControllerGroup leftSpeed;
 	private SpeedControllerGroup rightSpeed;
 	private DifferentialDrive drive;
-	private WPI_TalonSRX ballHolder;
+	private SpeedController ballHolder;
 	private WPI_TalonSRX elevator;
 	private WPI_TalonSRX leftArm;
 	private WPI_TalonSRX rightArm;
-	private WPI_TalonSRX inOutMotor;
 //	private TalonSRX inOutMotor1;
 //	private DoubleSolenoid elevatorBrake;
 	int autoLoopCounter;
@@ -129,11 +130,10 @@ public class Robot extends TimedRobot {
 			backLeftSpeed		= new CANSparkMax(1, MotorType.kBrushless);
 			frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
 			backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
-			leftArm				= new WPI_TalonSRX(12); 
-			rightArm			= new WPI_TalonSRX(13);
-			elevator			= new WPI_TalonSRX(6);
-			inOutMotor			= new WPI_TalonSRX(7);
-			ballHolder			= new WPI_TalonSRX(1); // Talon number is placeholder
+			leftArm				= new WPI_TalonSRX(2); 
+			rightArm			= new WPI_TalonSRX(3);
+			elevator			= new WPI_TalonSRX(13);
+			ballHolder			= new VictorSP(0);
 		} else {
 			System.err.println("Initializing Prototype Speed Controllers");
 			frontLeftSpeed		= new WPI_TalonSRX(2);
@@ -141,8 +141,7 @@ public class Robot extends TimedRobot {
 			frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
 			backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
 			elevator			= new WPI_TalonSRX(6); 
-			inOutMotor			= new WPI_TalonSRX(7);
-			ballHolder			= new WPI_TalonSRX(1); // Talon number is placeholder
+			ballHolder			= new WPI_TalonSRX(7);
 		}
 
 		compressor = new Compressor();
@@ -176,7 +175,7 @@ public class Robot extends TimedRobot {
 //		testPairOfMotors = new PairOfMotors(2, 3);
 
 		
-		inOutMotor.setInverted(true);
+		ballHolder.setInverted(true);
 //		frontElevator.follow(backElevator);
 		double value = 1; 
 //		backElevator.configSetParameter(ParamEnum.eClearPositionOnQuadIdx, value, 0x00, 0x00, 10);
@@ -190,13 +189,18 @@ public class Robot extends TimedRobot {
 		motorPairList.add(new PairOfMotors("RightDrive", 14, 15));
 		motorPairList.add(new PairOfMotors("ArmDrive", 6,7));
 		motorPairList.add(new PairOfMotors("Climb", 12,13));
+
+		for (PairOfMotors motorPair : motorPairList) {
+            SmartDashboard.putString(
+                "Motors/" + motorPair.getName(), 
+                "No motor current differences detected");
+		}
+	
+
 	}
 
 	@Override
 	public void robotPeriodic() {
-		for (PairOfMotors motorPair : motorPairList) {
-
-		}
 	}
 
 	@Override
@@ -233,22 +237,23 @@ public class Robot extends TimedRobot {
 		try {
 
 			actions.input(new DriverInput()
-				.withInput("Operator-X-Button",		xbox.getXButton()) // used
-				.withInput("Operator-Y-Button",		xbox.getYButton()) // used
-				.withInput("Operator-A-Button", 	xbox.getAButton()) // used
-				.withInput("Operator-B-Button",		xbox.getBButton()) // used
-				.withInput("Operator-Start-Button",	xbox.getRawButton(8)) 
+				.withInput("Operator-X-Button",		xbox.getXButton()) // used - lift movement
+				.withInput("Operator-Y-Button",		xbox.getYButton()) // used - claw
+				.withInput("Operator-A-Button", 	xbox.getAButton()) // used - lift movement
+				.withInput("Operator-B-Button",		xbox.getBButton()) // used - lift movement
+				.withInput("Operator-Start-Button",	xbox.getRawButton(8))
 				.withInput("Operator-Back-Button",	xbox.getRawButton(7))
-				.withInput("Elevator-Back",  		xbox.getTriggerAxis(Hand.kLeft))	// used
-				.withInput("Elevator-Forward",		xbox.getTriggerAxis(Hand.kRight))	// used
-				.withInput("Operator-DPad",			xbox.getPOV()) // used
-				.withInput("Driver-Left", 			driverLeft.getRawAxis(1)) // used
-				.withInput("Driver-Right", 			driverRight.getRawAxis(1)) // used
-				.withInput("Driver-Left-Trigger", 	driverLeft.getRawButton(1)) // used
-				.withInput("Driver-Right-Trigger", 	driverRight.getRawButton(1)) // used
-				.withInput("Operator-Left-Bumper",	xbox.getBumper(Hand.kLeft))
-				.withInput("Operator-Right-Bumper", xbox.getBumper(Hand.kRight))
-				.withInput("Driver-Left-8", 		driverLeft.getRawButton(8)) // used
+				.withInput("Elevator-Back",  		xbox.getTriggerAxis(Hand.kLeft))	// used - elevator back
+				.withInput("Elevator-Forward",		xbox.getTriggerAxis(Hand.kRight))	// used - elevator forward
+				.withInput("Operator-DPad",			xbox.getPOV()) // used - set elevator position
+				.withInput("Driver-Left", 			driverLeft.getRawAxis(1)) // used - drives left side
+				.withInput("Driver-Right", 			driverRight.getRawAxis(1)) // used - drives right side
+				.withInput("Driver-Left-Trigger", 	driverLeft.getRawButton(1))
+				.withInput("Driver-Right-Trigger", 	driverRight.getRawButton(1))
+				.withInput("Operator-Left-Bumper",	xbox.getBumper(Hand.kLeft)) // used - ball scoop
+				.withInput("Operator-Right-Bumper", xbox.getBumper(Hand.kRight)) // used - ball scoop
+				.withInput("Driver-Left-8", 		driverLeft.getRawButton(8)) // used - enables backwards
+				.withInput("Operator-Left-Stick",	xbox.getY(Hand.kLeft)) // used - arm movement
 			);	
 		
 		} catch (IllegalAccessException e) {
@@ -316,6 +321,18 @@ public class Robot extends TimedRobot {
 			break;
 		}
 		
+		
+		if(input.getAxis("Operator-Left-Stick") != 0)
+			{
+			leftArm.set(input.getAxis("Operator-Left-Stick"));
+			rightArm.set(input.getAxis("Operator-Left-Stick") * -1);
+			}
+		else
+			{
+			leftArm.set(0);
+			rightArm.set(0);
+			}
+
 		clawState.input(input.getButton("Operator-Y-Button"));
 		if(clawState.getState())
 			{
@@ -325,41 +342,47 @@ public class Robot extends TimedRobot {
 				Solenoid0.set(true);
 				Solenoid1.set(true);
 				Solenoid2.set(true);
+				Solenoid3.set(true);
 				}
 			else
 				{
 				Solenoid0.set(false);
 				Solenoid1.set(false);
 				Solenoid2.set(false);
+				Solenoid3.set(false);
 				}
 			}
 		
-		if(input.getButton("Driver-Right-Trigger"))
+		if(input.getButton("Operator-Right-Bumper"))
 			{
 			ballHolder.set(.99);
 			}
-		if(input.getButton("Driver-Left-Trigger"))
+		else if(input.getButton("Operator-Left-Bumper"))
 			{
 			ballHolder.set(-.99);
+			}
+		else
+			{
+			ballHolder.set(0);
 			}
 		
 		
 		SmartDashboard.putString("DB/String 6", "" + elevator.getSelectedSensorPosition(0));
 
 		if (input.getButton("Operator-X-Button")) {
-			inOutMotor.set(ControlMode.PercentOutput, .99);
-//			inOutMotor1.set(ControlMode.PercentOutput, -.99);
+			ballHolder.set(1.0);
 		} else if (input.getButton("Operator-A-Button")) {
-			inOutMotor.set(ControlMode.PercentOutput, -.50);
-//			inOutMotor1.set(ControlMode.PercentOutput, .50);
+			ballHolder.set(-.50);
 		} else if (input.getButton("Operator-B-Button")) {
-			inOutMotor.set(ControlMode.PercentOutput, -.99);
-//			inOutMotor1.set(ControlMode.PercentOutput, .99);
+			ballHolder.set(-1.0);
 		} else {
-			inOutMotor.set(ControlMode.PercentOutput, 0.0);	
-//			inOutMotor1.set(ControlMode.PercentOutput, 0.0);	
+			ballHolder.set(0.0);	
 		}
 
+		for (PairOfMotors motorPair : motorPairList) {
+			motorPair.isCurrentDifferent();
+			}
+	
 	}
 
 
