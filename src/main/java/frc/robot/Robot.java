@@ -1,35 +1,24 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import com.ctre.phoenix.ParamEnum;
 import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
-import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
-import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
-import edu.wpi.first.cameraserver.*;
-import edu.wpi.first.cameraserver.CameraServer;
-import java.io.File;
+// import edu.wpi.first.cameraserver.*;
+// import edu.wpi.first.cameraserver.CameraServer;
 import java.lang.reflect.InvocationTargetException;
-import edu.wpi.first.cameraserver.*;
-import com.zephyr.pixy.*;
+// import edu.wpi.first.cameraserver.*;
+// import com.zephyr.pixy.*;
 import frc.robot.Toggle;
 import frc.robot.PairOfMotors;
 import java.util.List;
 
-import javax.lang.model.util.ElementScanner6;
+// import javax.lang.model.util.ElementScanner6;
 
 import java.util.ArrayList;
 
@@ -43,10 +32,10 @@ By Jonathan Heitz, Daniel Lucash, Christopher Nokes, Benjamin Ulrich, and SJHS F
 
 public class Robot extends TimedRobot {
 
-	private boolean prototype = false;
 	private XboxController xbox;
 	private Joystick driverLeft;
 	private Joystick driverRight;
+
 	private SpeedController frontLeftSpeed;
 	private SpeedController frontRightSpeed;
 	private SpeedController backLeftSpeed;
@@ -54,45 +43,45 @@ public class Robot extends TimedRobot {
 	private SpeedControllerGroup leftSpeed;
 	private SpeedControllerGroup rightSpeed;
 	private DifferentialDrive drive;
-	private SpeedController ballHolder;
+	private WPI_TalonSRX ballHolder;
 	private WPI_TalonSRX elevator;
 	private WPI_TalonSRX leftArm;
 	private WPI_TalonSRX rightArm;
+	private SpeedController frontJumper;
+	private SpeedController rearJumper;
+	private SpeedControllerGroup jumperSpeed;
+
 //	private TalonSRX inOutMotor1;
-//	private DoubleSolenoid elevatorBrake;
+	private DoubleSolenoid claw;
+	private DoubleSolenoid boost;
 	int autoLoopCounter;
-	private Thread autoThread;
-	private ControlMode Current;
 	public String gameData;
 	private int startingPosition = 1;
 	private ActionRecorder actions;
-	private Pixy pixycam;
+//	private Pixy pixycam;
 	private Compressor compressor;
 	private AnalogInput pressureSensor;
-	private Solenoid Solenoid0;
-	private Solenoid Solenoid1;
-	private Solenoid Solenoid2;
-	private Solenoid Solenoid3;
+
 	private double previousElevator;
-	private PairOfMotors testPairOfMotors;
 
 	private List<PairOfMotors> motorPairList;
 
 	Toggle backwards;
 	Toggle doMotorBreakIn = new Toggle();
 	Toggle clawState;
+	Toggle boostState;
 
 	@Override
 	public void robotInit() {
 
 		System.err.println("Starting the Deep Space Robot");
-		CameraServer.getInstance().startAutomaticCapture();
 
 		driverLeft = new Joystick(0);
 		driverRight = new Joystick(1);
 		xbox = new XboxController(2);
 		backwards = new Toggle();
 		clawState = new Toggle();
+		boostState = new Toggle();
 
 		System.out.println("initializing actions...");
 		actions = new ActionRecorder().
@@ -123,52 +112,37 @@ public class Robot extends TimedRobot {
 		DriverInput.nameInput("Operator-DPad");
 		DriverInput.nameInput("Driver-Left-8");
 
-		if (!prototype) {
-			System.err.println("Initializing Speed Controllers");
-			frontLeftSpeed		= new CANSparkMax(20, MotorType.kBrushless);
-			backLeftSpeed		= new CANSparkMax(1, MotorType.kBrushless);
-			frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
-			backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
-			leftArm				= new WPI_TalonSRX(2); 
-			rightArm			= new WPI_TalonSRX(3);
-			elevator			= new WPI_TalonSRX(13);
-			ballHolder			= new VictorSP(0);
-		} else {
-			System.err.println("Initializing Prototype Speed Controllers");
-			frontLeftSpeed		= new WPI_TalonSRX(2);
-			backLeftSpeed		= new WPI_TalonSRX(3);
-			frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
-			backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
-			elevator			= new WPI_TalonSRX(6); 
-			ballHolder			= new WPI_TalonSRX(7);
-		}
+
+		System.err.println("Initializing Speed Controllers");
+		frontLeftSpeed		= new CANSparkMax(20, MotorType.kBrushless);
+		backLeftSpeed		= new CANSparkMax(21, MotorType.kBrushless);
+		frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
+		backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
+		leftArm				= new WPI_TalonSRX(2); 
+		rightArm			= new WPI_TalonSRX(3);
+		elevator			= new WPI_TalonSRX(6);
+		ballHolder			= new WPI_TalonSRX(7);
+		frontJumper			= new WPI_TalonSRX(12);
+		rearJumper			= new WPI_TalonSRX(13);
 
 		compressor = new Compressor();
 		pressureSensor = new AnalogInput(0);
 		
-		Solenoid0 = new Solenoid(0);
-		Solenoid0.set(true);
-		Solenoid0.set(false);
+		claw = new DoubleSolenoid(2, 3);
+		claw.set(Value.kReverse);
 
-		Solenoid1 = new Solenoid(1);
-		Solenoid1.set(true);
-		Solenoid1.set(false);
-
-		Solenoid2 = new Solenoid(2);
-		Solenoid2.set(true);
-		Solenoid2.set(false);
-
-		Solenoid3 = new Solenoid(3);
-		Solenoid3.set(true);
-		Solenoid3.set(false);
+		boost = new DoubleSolenoid(0, 1);
+		boost.set(Value.kReverse);
 
 		System.err.println("Initializing Drive Train");
 		leftSpeed = new SpeedControllerGroup(frontLeftSpeed, backLeftSpeed);
 		rightSpeed = new SpeedControllerGroup(frontRightSpeed, backRightSpeed);
 		drive = new DifferentialDrive(leftSpeed, rightSpeed);
+
+		jumperSpeed = new SpeedControllerGroup(frontJumper, rearJumper);
 		
-		System.err.println("Initializing PixyCam");
-		pixycam = new Pixy(Port.kOnboardCS0, 0);
+//		System.err.println("Initializing PixyCam");
+// 		pixycam = new Pixy(Port.kOnboardCS0, 0);
 
 //		testPairOfMotors = new PairOfMotors(2, 3);
 
@@ -178,7 +152,7 @@ public class Robot extends TimedRobot {
 		double value = 1; 
 //		backElevator.configSetParameter(ParamEnum.eClearPositionOnQuadIdx, value, 0x00, 0x00, 10);
 //		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitF, value, 0x00, 0x00, 10);
-//		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitR, value, 0x00, 0x00, 10);
+//		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitR, value, 0x00, 0x00, 10);= 
 
 
 		motorPairList = new ArrayList<PairOfMotors>();
@@ -227,12 +201,12 @@ public class Robot extends TimedRobot {
 	public void teleopInit() {
 		DriverInput.setRecordTime();
 		actions.teleopInit();
-
-		System.err.println("Solenoid 0 " + Solenoid0);
 	}
 
 	@Override
 	public void teleopPeriodic() {
+
+		RobotStopWatch watch = new RobotStopWatch("teleopPeriodic");
 	
 		try {
 
@@ -263,13 +237,23 @@ public class Robot extends TimedRobot {
 		} catch (InvocationTargetException e) {
 			e.printStackTrace();
 		}
+
+		System.err.println(watch.toString());
 		
 		// pixycam.getAllDetectedObjects();
 		
 	}
 
+
 	public void disabledInit() {
 		actions.disabledInit();
+
+		sparkDiagnostics((CANSparkMax) frontLeftSpeed);
+		sparkDiagnostics((CANSparkMax) backLeftSpeed);
+
+
+		sparkDiagnostics((CANSparkMax) frontRightSpeed);
+		sparkDiagnostics((CANSparkMax) backRightSpeed);
 	}
 
 	public void disabledPeriodic() {
@@ -278,12 +262,14 @@ public class Robot extends TimedRobot {
 
 	public void robotOperation(DriverInput input) {
 		
+		RobotStopWatch watch = new RobotStopWatch("robotOperation");
+
 		SmartDashboard.putString("DB/String 1", "" + gameData + startingPosition);
 		
 		double leftAxis = input.getAxis("Driver-Left");
 		double rightAxis = input.getAxis("Driver-Right");
-		leftAxis = Math.abs(Math.pow(leftAxis, 2)) * leftAxis/Math.abs(leftAxis);
-		rightAxis = Math.abs(Math.pow(rightAxis, 2)) * rightAxis/Math.abs(rightAxis);
+		leftAxis = -1 * Math.abs(Math.pow(leftAxis, 6)) * leftAxis/Math.abs(leftAxis);
+		rightAxis = -1 * Math.abs(Math.pow(rightAxis, 6)) * rightAxis/Math.abs(rightAxis);
 
 		backwards.input(input.getButton("Driver-Left-8"));
 		SmartDashboard.putBoolean("DB/LED 1", backwards.getState());
@@ -336,57 +322,56 @@ public class Robot extends TimedRobot {
 		clawState.input(input.getButton("Operator-Y-Button"));
 		if(clawState.getState())
 			{
-					try
-					{
-					Solenoid0.set(true);
-					Solenoid1.set(true);
-					Solenoid2.set(true);
-					Solenoid3.set(true);
-					}
-					catch(Exception E)
-					{
-					System.err.println("In claw = 1 " +  E);
-					System.err.println("Solenoid 0 " + Solenoid0);
-					}	
-			}
-			else
-			{
-					try
-					{
-					Solenoid0.set(false);
-					Solenoid1.set(false);
-					Solenoid2.set(false);
-					Solenoid3.set(false);
-					}
-					catch(Exception E)
-					{
-					System.err.println("In claw = -1 " +  E);
-					System.err.println("Solenoid 0 " + Solenoid0);
-					}
-			}
-		
-		if(input.getButton("Operator-Right-Bumper"))
-			{
-			ballHolder.set(.99);
-			}
-		else if(input.getButton("Operator-Left-Bumper"))
-			{
-			ballHolder.set(-.99);
+			claw.set(Value.kForward);
 			}
 		else
 			{
-			ballHolder.set(0);
+			claw.set(Value.kReverse);
 			}
 		
+		boostState.input(input.getButton("Operator-Start-Button"));
+		if(boostState.getState())
+			{
+			System.err.println("Boost forward");
+			boost.set(Value.kForward);
+			}
+		else
+			{
+			System.err.println("Boost reverse");
+			boost.set(Value.kReverse);
+			}
+
+
+		if(input.getButton("Operator-Right-Bumper"))
+			{
+			ballHolder.set(ControlMode.PercentOutput, -.99);
+			}
+		else if(input.getButton("Operator-Left-Bumper"))
+			{
+			ballHolder.set(ControlMode.PercentOutput, .99);
+			}
+		else
+			{
+			ballHolder.set(ControlMode.PercentOutput, 0.0);
+			}
+		
+		if (input.getButton("Operator-Back-Button"))
+			{
+			jumperSpeed.set(1.0);
+			}
+		else
+			{
+			jumperSpeed.set(0.0);
+			}
 		
 		SmartDashboard.putString("DB/String 6", "" + elevator.getSelectedSensorPosition(0));
 
 		if (input.getButton("Operator-X-Button")) {
-			ballHolder.set(1.0);
-		} else if (input.getButton("Operator-A-Button")) {
-			ballHolder.set(-.50);
-		} else if (input.getButton("Operator-B-Button")) {
 			ballHolder.set(-1.0);
+		} else if (input.getButton("Operator-A-Button")) {
+			ballHolder.set(.50);
+		} else if (input.getButton("Operator-B-Button")) {
+			ballHolder.set(1.0);
 		} else {
 			ballHolder.set(0.0);	
 		}
@@ -395,6 +380,7 @@ public class Robot extends TimedRobot {
 			motorPair.isCurrentDifferent();
 			}
 	
+		System.err.println(watch.toString());
 	}
 
 
@@ -435,5 +421,22 @@ if(clawState.getState())
 //		return false;
 //
 //	}
+
+public void sparkDiagnostics(CANSparkMax controller) {
+
+	int canID = controller.getDeviceId();
+
+	System.err.println("Checking faults in Spark " + canID);
+
+	for (CANSparkMax.FaultID c : CANSparkMax.FaultID.values()) {
+		if (controller.getFault(c)) {
+			System.err.println("Spark " + canID + " " + c.toString() + " SET");
+		}
+
+		if (controller.getStickyFault(c)) {
+			System.err.println("Spark " + canID + " " + c.toString() + " STICKY");
+		}
+	}
+}
 
 }
