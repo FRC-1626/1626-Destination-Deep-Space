@@ -9,12 +9,14 @@ import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
-// import edu.wpi.first.cameraserver.*;
+import edu.wpi.cscore.UsbCamera;
+import edu.wpi.first.cameraserver.CameraServer;
 // import edu.wpi.first.cameraserver.CameraServer;
 import java.lang.reflect.InvocationTargetException;
 // import edu.wpi.first.cameraserver.*;
 // import com.zephyr.pixy.*;
 import frc.robot.Toggle;
+//import sun.tools.jconsole.inspector.Utils;
 import frc.robot.PairOfMotors;
 import java.util.List;
 
@@ -61,7 +63,8 @@ public class Robot extends TimedRobot {
 //	private Pixy pixycam;
 	private Compressor compressor;
 	private AnalogInput pressureSensor;
-
+	private UsbCamera camera;
+	private CameraServer cameraServer;
 	private double previousElevator;
 
 	private List<PairOfMotors> motorPairList;
@@ -75,6 +78,11 @@ public class Robot extends TimedRobot {
 	public void robotInit() {
 
 		System.err.println("Starting the Deep Space Robot");
+
+		cameraServer = CameraServer.getInstance();
+		camera = new UsbCamera("USB Camera 0", 1);
+		cameraServer.addCamera(camera);
+		cameraServer.startAutomaticCapture();
 
 		driverLeft = new Joystick(0);
 		driverRight = new Joystick(1);
@@ -149,7 +157,7 @@ public class Robot extends TimedRobot {
 		
 		ballHolder.setInverted(true);
 //		frontElevator.follow(backElevator);
-		double value = 1; 
+//		double value = 1; 
 //		backElevator.configSetParameter(ParamEnum.eClearPositionOnQuadIdx, value, 0x00, 0x00, 10);
 //		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitF, value, 0x00, 0x00, 10);
 //		backElevator.configSetParameter(ParamEnum.eClearPositionOnLimitR, value, 0x00, 0x00, 10);= 
@@ -173,7 +181,10 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void robotPeriodic() {
+		double pressure = (250.0 * (pressureSensor.getVoltage() / 5.0)) - 13;
+		SmartDashboard.putString("DB/String 4", String.format("%.0f", pressure));
 	}
+
 
 	@Override
 	public void autonomousInit() {
@@ -187,13 +198,13 @@ public class Robot extends TimedRobot {
 	@Override
 	public void autonomousPeriodic() {
 	
-		String itemLocationString = gameData.substring(0, 2) + startingPosition;
+//		String itemLocationString = gameData.substring(0, 2) + startingPosition;
 		try{
 			if (actions != null) actions.longPlayback(this, -1);
 			else Timer.delay(0.010);
 		}catch (Exception e) { 
 			System.out.println("AP: " + e.toString()); 
-		}  // pixycam.getAllDetectedObjects();
+		}  // pixycam.b  ();
 
   	} 
 
@@ -209,16 +220,15 @@ public class Robot extends TimedRobot {
 		RobotStopWatch watch = new RobotStopWatch("teleopPeriodic");
 	
 		try {
-
 			actions.input(new DriverInput()
 				.withInput("Operator-X-Button",		xbox.getXButton()) // used - lift movement
 				.withInput("Operator-Y-Button",		xbox.getYButton()) // used - claw
 				.withInput("Operator-A-Button", 	xbox.getAButton()) // used - lift movement
 				.withInput("Operator-B-Button",		xbox.getBButton()) // used - lift movement
-				.withInput("Operator-Start-Button",	xbox.getRawButton(8))
+				.withInput("Operator-Start-Button",	xbox.getRawButton(8)) //  boost
 				.withInput("Operator-Back-Button",	xbox.getRawButton(7))
-				.withInput("Elevator-Back",  		xbox.getTriggerAxis(Hand.kLeft))	// used - elevator back
-				.withInput("Elevator-Forward",		xbox.getTriggerAxis(Hand.kRight))	// used - elevator forward
+				.withInput("Elevator-Forward",  	xbox.getTriggerAxis(Hand.kLeft))	// used - elevator back
+				.withInput("Elevator-Back",			xbox.getTriggerAxis(Hand.kRight))	// used - elevator forward
 				.withInput("Operator-DPad",			xbox.getPOV()) // used - set elevator position
 				.withInput("Driver-Left", 			driverLeft.getRawAxis(1)) // used - drives left side
 				.withInput("Driver-Right", 			driverRight.getRawAxis(1)) // used - drives right side
@@ -268,8 +278,8 @@ public class Robot extends TimedRobot {
 		
 		double leftAxis = input.getAxis("Driver-Left");
 		double rightAxis = input.getAxis("Driver-Right");
-		leftAxis = -1 * Math.abs(Math.pow(leftAxis, 6)) * leftAxis/Math.abs(leftAxis);
-		rightAxis = -1 * Math.abs(Math.pow(rightAxis, 6)) * rightAxis/Math.abs(rightAxis);
+		leftAxis = -1 * Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
+		rightAxis = -1 * Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 
 		backwards.input(input.getButton("Driver-Left-8"));
 		SmartDashboard.putBoolean("DB/LED 1", backwards.getState());
@@ -291,6 +301,7 @@ public class Robot extends TimedRobot {
 		previousElevator = elevatorAxis;
 //		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
 
+/*
 		int dpadAxis = (int) input.getAxis("Operator-DPad");
 		switch(dpadAxis){
 		case 0:
@@ -304,9 +315,8 @@ public class Robot extends TimedRobot {
 			break;
 		case 270:
 			elevator.set(ControlMode.Position, 300);
-			break;
 		}
-		
+*/
 		
 		if(input.getAxis("Operator-Left-Stick") != 0)
 			{
@@ -344,18 +354,9 @@ public class Robot extends TimedRobot {
 
 		if(input.getButton("Operator-Right-Bumper"))
 			{
-			ballHolder.set(ControlMode.PercentOutput, -.99);
+			jumperSpeed.set(-1.0);
 			}
 		else if(input.getButton("Operator-Left-Bumper"))
-			{
-			ballHolder.set(ControlMode.PercentOutput, .99);
-			}
-		else
-			{
-			ballHolder.set(ControlMode.PercentOutput, 0.0);
-			}
-		
-		if (input.getButton("Operator-Back-Button"))
 			{
 			jumperSpeed.set(1.0);
 			}
@@ -364,14 +365,24 @@ public class Robot extends TimedRobot {
 			jumperSpeed.set(0.0);
 			}
 		
+//		if (input.getButton("Operator-Back-Button"))
+//			{
+//			frontJumper.set(1.0);
+//			rearJumper.set(1.0);
+//			}
+//		else
+//			{
+//			jumperSpeed.set(0.0);
+//			}
+		
 		SmartDashboard.putString("DB/String 6", "" + elevator.getSelectedSensorPosition(0));
 
 		if (input.getButton("Operator-X-Button")) {
-			ballHolder.set(-1.0);
-		} else if (input.getButton("Operator-A-Button")) {
-			ballHolder.set(.50);
-		} else if (input.getButton("Operator-B-Button")) {
 			ballHolder.set(1.0);
+		} else if (input.getButton("Operator-A-Button")) {
+			ballHolder.set(-.50);
+		} else if (input.getButton("Operator-B-Button")) {
+			ballHolder.set(-1.0);
 		} else {
 			ballHolder.set(0.0);	
 		}

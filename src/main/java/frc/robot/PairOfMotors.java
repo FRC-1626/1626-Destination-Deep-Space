@@ -1,31 +1,7 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import com.ctre.phoenix.ParamEnum;
-import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax;
 import edu.wpi.first.wpilibj.*;
-import edu.wpi.first.wpilibj.GenericHID.Hand;
-import edu.wpi.first.wpilibj.SPI.Port;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
-import java.io.File;
-import java.lang.reflect.InvocationTargetException;
-import edu.wpi.first.cameraserver.*;
-import com.zephyr.pixy.*;
-import edu.wpi.first.wpilibj.Solenoid;
-import frc.robot.Robot;
-import frc.robot.Toggle;
 
 //  This class was made by Heitz
 //  You know who to blame now
