@@ -269,7 +269,6 @@ public class Robot extends TimedRobot {
 
 	public void disabledPeriodic() {
 		actions.disabledPeriodic();
-		}
 	}
 
 	public void robotOperation(DriverInput input) {
