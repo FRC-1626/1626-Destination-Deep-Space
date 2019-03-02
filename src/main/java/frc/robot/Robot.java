@@ -14,8 +14,9 @@ import edu.wpi.first.cameraserver.CameraServer;
 // import edu.wpi.first.cameraserver.CameraServer;
 import java.lang.reflect.InvocationTargetException;
 // import edu.wpi.first.cameraserver.*;
-// import com.zephyr.pixy.*;
+
 import frc.robot.Toggle;
+
 //import sun.tools.jconsole.inspector.Utils;
 import frc.robot.PairOfMotors;
 import java.util.List;
@@ -268,6 +269,7 @@ public class Robot extends TimedRobot {
 
 	public void disabledPeriodic() {
 		actions.disabledPeriodic();
+		}
 	}
 
 	public void robotOperation(DriverInput input) {
@@ -276,10 +278,10 @@ public class Robot extends TimedRobot {
 
 		SmartDashboard.putString("DB/String 1", "" + gameData + startingPosition);
 		
-		double leftAxis = input.getAxis("Driver-Left");
-		double rightAxis = input.getAxis("Driver-Right");
-		leftAxis = -1 * Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
-		rightAxis = -1 * Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
+		double leftAxis = -1.0 * input.getAxis("Driver-Left");
+		double rightAxis = -1.0 * input.getAxis("Driver-Right");
+		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
+		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 
 		backwards.input(input.getButton("Driver-Left-8"));
 		SmartDashboard.putBoolean("DB/LED 1", backwards.getState());
