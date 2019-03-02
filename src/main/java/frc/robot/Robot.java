@@ -14,8 +14,11 @@ import edu.wpi.first.cameraserver.CameraServer;
 // import edu.wpi.first.cameraserver.CameraServer;
 import java.lang.reflect.InvocationTargetException;
 // import edu.wpi.first.cameraserver.*;
-// import com.zephyr.pixy.*;
+import com.zephyr.pixy.*;
 import frc.robot.Toggle;
+import io.github.pseudoresonance.pixy2api.Pixy2;
+import io.github.pseudoresonance.pixy2api.Pixy2CCC;
+import io.github.pseudoresonance.pixy2api.links.SPILink;
 //import sun.tools.jconsole.inspector.Utils;
 import frc.robot.PairOfMotors;
 import java.util.List;
@@ -68,6 +71,10 @@ public class Robot extends TimedRobot {
 	private double previousElevator;
 
 	private List<PairOfMotors> motorPairList;
+
+	private boolean hasPixy = true;
+	private Pixy2CCC tracker;
+	private Pixy2 pixy;
 
 	Toggle backwards;
 	Toggle doMotorBreakIn = new Toggle();
@@ -264,10 +271,28 @@ public class Robot extends TimedRobot {
 
 		sparkDiagnostics((CANSparkMax) frontRightSpeed);
 		sparkDiagnostics((CANSparkMax) backRightSpeed);
+
+		if (hasPixy) {
+			pixy = Pixy2.createInstance(Pixy2.LinkType.SPI);
+			pixy.init();
+			tracker = pixy.getCCC();
+			pixy.setLED(0,255,0);
+			Pixy2.Version ver = pixy.getVersionInfo();
+			if (ver != null) {
+				SmartDashboard.putString("Pixy/Version", ver.toString());
+			} else {
+				SmartDashboard.putString("Pixy/Version", "NULL");
+			}
+		}
+
 	}
 
 	public void disabledPeriodic() {
 		actions.disabledPeriodic();
+
+		if (hasPixy) {
+			showPixy();
+		}
 	}
 
 	public void robotOperation(DriverInput input) {
@@ -276,10 +301,10 @@ public class Robot extends TimedRobot {
 
 		SmartDashboard.putString("DB/String 1", "" + gameData + startingPosition);
 		
-		double leftAxis = input.getAxis("Driver-Left");
-		double rightAxis = input.getAxis("Driver-Right");
-		leftAxis = -1 * Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
-		rightAxis = -1 * Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
+		double leftAxis = -1.0 * input.getAxis("Driver-Left");
+		double rightAxis = -1.0 * input.getAxis("Driver-Right");
+		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
+		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 
 		backwards.input(input.getButton("Driver-Left-8"));
 		SmartDashboard.putBoolean("DB/LED 1", backwards.getState());
@@ -448,6 +473,17 @@ public void sparkDiagnostics(CANSparkMax controller) {
 			System.err.println("Spark " + canID + " " + c.toString() + " STICKY");
 		}
 	}
+}
+
+public void showPixy() {
+
+	int val = tracker.getBlocks(true, 1, 8);
+	if (val > 0) {
+		SmartDashboard.putString("Pixy/Tracker", "Return: " + val);
+		List<Pixy2CCC.Block> blocks = tracker.getBlocks();
+		Pixy2CCC.Block block = blocks.get(0);
+		SmartDashboard.putString("Pixy/Block","x:" + block.getX() + " y:" + block.getY() + " s:" + block.getWidth() * block.getHeight());
+	}	
 }
 
 }
