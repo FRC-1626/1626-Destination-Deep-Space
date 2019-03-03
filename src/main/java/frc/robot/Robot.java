@@ -70,6 +70,9 @@ public class Robot extends TimedRobot {
 
 	private List<PairOfMotors> motorPairList;
 
+	private Encoder Encoder;
+	private int SpinCount;
+
 	Toggle backwards;
 	Toggle doMotorBreakIn = new Toggle();
 	Toggle clawState;
@@ -154,6 +157,8 @@ public class Robot extends TimedRobot {
 // 		pixycam = new Pixy(Port.kOnboardCS0, 0);
 
 //		testPairOfMotors = new PairOfMotors(2, 3);
+
+		Encoder = new Encoder(0, 6, false);
 
 		
 		ballHolder.setInverted(true);
@@ -366,7 +371,36 @@ public class Robot extends TimedRobot {
 			jumperSpeed.set(0.0);
 			}
 		
-//		if (input.getButton("Operator-Back-Button"))
+			int dpadAxis = (int) input.getAxis("Operator-DPad");
+			if(dpadAxis == 0) {
+			Encoder.reset();
+				for (SpinCount = Encoder.getRaw(); SpinCount < 40;) {
+					elevator.set(.99);
+				  }
+				elevator.set(0);
+			}
+			if(dpadAxis == 90) {
+			Encoder.reset();
+				for (SpinCount = Encoder.getRaw(); SpinCount < 80;) {
+					elevator.set(.99);
+				  }
+				elevator.set(0);
+			}
+			if(dpadAxis == 180) {
+			Encoder.reset();
+				for (SpinCount = Encoder.getRaw(); SpinCount < 40;) {
+					elevator.set(-.99);
+				  }
+				elevator.set(0);
+			}
+			if(dpadAxis == 270) {
+			Encoder.reset();
+				for (SpinCount = Encoder.getRaw(); SpinCount < 80;) {
+					elevator.set(-.99);
+				  }
+				elevator.set(0);
+			}
+	//		if (input.getButton("Operator-Back-Button"))
 //			{
 //			frontJumper.set(1.0);
 //			rearJumper.set(1.0);
