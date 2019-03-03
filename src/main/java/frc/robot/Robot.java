@@ -70,8 +70,7 @@ public class Robot extends TimedRobot {
 	private CameraServer cameraServer;
 	private double previousElevator;
 
-	private Encoder Encoder;
-	private int SpinCount;
+	private int ManualElevator = 0;
 
 	private List<PairOfMotors> motorPairList;
 
@@ -83,7 +82,7 @@ public class Robot extends TimedRobot {
 	Toggle doMotorBreakIn = new Toggle();
 	Toggle clawState;
 	Toggle boostState;
-	Toggle backState;
+	Toggle dpadState;
 
 	@Override
 	public void robotInit() {
@@ -101,7 +100,7 @@ public class Robot extends TimedRobot {
 		backwards = new Toggle();
 		clawState = new Toggle();
 		boostState = new Toggle();
-		backState = new Toggle();
+		dpadState = new Toggle();
 
 		System.out.println("initializing actions...");
 		actions = new ActionRecorder().
@@ -138,15 +137,20 @@ public class Robot extends TimedRobot {
 		backLeftSpeed		= new CANSparkMax(21, MotorType.kBrushless);
 		frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
 		backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
+
 		leftArm				= new WPI_TalonSRX(2); 
+
 		rightArm			= new WPI_TalonSRX(3);
 		elevator			= new WPI_TalonSRX(6);
+
 		ballHolder			= new WPI_TalonSRX(7);
 		frontJumper			= new WPI_TalonSRX(12);
 		rearJumper			= new WPI_TalonSRX(13);
 
 		compressor = new Compressor();
 		pressureSensor = new AnalogInput(0);
+
+		ManualElevator = 0;
 		
 		claw = new DoubleSolenoid(2, 3);
 		claw.set(Value.kReverse);
@@ -165,8 +169,6 @@ public class Robot extends TimedRobot {
 // 		pixycam = new Pixy(Port.kOnboardCS0, 0);
 
 //		testPairOfMotors = new PairOfMotors(2, 3);
-
-		Encoder = new Encoder(0, 6, false);
 		
 		ballHolder.setInverted(true);
 //		frontElevator.follow(backElevator);
@@ -189,7 +191,18 @@ public class Robot extends TimedRobot {
                 "No motor current differences detected");
 		}
 	
+		elevator.configNominalOutputForward(0, 30);
+		elevator.configNominalOutputReverse(0, 30);
+		elevator.configPeakOutputForward(1, 30);
+		elevator.configPeakOutputReverse(-1, 30);
+		elevator.configAllowableClosedloopError(0, 0, 30);
 
+		/* Config Position Closed Loop gains in slot0, tsypically kF stays zero. */
+		elevator.config_kF(0, 0.1, 30);
+		elevator.config_kP(0, .25, 30);
+		elevator.config_kI(0, 0, 30);
+		elevator.config_kD(0, 0, 30);
+		elevator.setSensorPhase(true);
 	}
 
 	@Override
@@ -320,11 +333,16 @@ public class Robot extends TimedRobot {
 
 		double elevatorAxis = input.getAxis("Elevator-Forward") - input.getAxis("Elevator-Back");
 		if (Math.abs(elevatorAxis) > 0.10) {
+			ManualElevator = 1;
 //			if (Math.abs(previousElevator) < 0.10) elevatorBrake.set (Value.kForward);
-			elevator.set(ControlMode.PercentOutput, elevatorAxis);	
+			elevator.set(ControlMode.PercentOutput, elevatorAxis);
+			SmartDashboard.putString("Elevator/motor", "%" + elevatorAxis);
 		} else {
+			if(ManualElevator == 1) {
 //			elevatorBrake.set(Value.kReverse);
 			elevator.set(ControlMode.PercentOutput, 0);
+			SmartDashboard.putString("Elevator/motor", "%" + 0);
+			}
 		}
 
 		previousElevator = elevatorAxis;
@@ -332,32 +350,24 @@ public class Robot extends TimedRobot {
 
 		int dpadAxis = (int) input.getAxis("Operator-DPad");
 		if(dpadAxis == 0) {
-		Encoder.reset();
-			for (SpinCount = Encoder.getRaw(); SpinCount < 40;) {
-				elevator.set(.99);
-			  }
-			elevator.set(0);
+			ManualElevator = 0;
+			elevator.set(ControlMode.Position, 1000);
+			SmartDashboard.putString("Elevator/motor", "Pos:" + 1000);
 		}
 		if(dpadAxis == 90) {
-		Encoder.reset();
-			for (SpinCount = Encoder.getRaw(); SpinCount < 80;) {
-				elevator.set(.99);
-			  }
-			elevator.set(0);
+			ManualElevator = 0;
+			elevator.set(ControlMode.Position, 2000);
+			SmartDashboard.putString("Elevator/motor", "Pos:" + 2000);
 		}
 		if(dpadAxis == 180) {
-		Encoder.reset();
-			for (SpinCount = Encoder.getRaw(); SpinCount < 40;) {
-				elevator.set(-.99);
-			  }
-			elevator.set(0);
+			ManualElevator = 0;
+			elevator.set(ControlMode.Position, 3000);
+			SmartDashboard.putString("Elevator/motor", "Pos:" + 3000);
 		}
 		if(dpadAxis == 270) {
-		Encoder.reset();
-			for (SpinCount = Encoder.getRaw(); SpinCount < 80;) {
-				elevator.set(-.99);
-			  }
-			elevator.set(0);
+			ManualElevator = 0;
+			elevator.set(ControlMode.Position, 4000);
+			SmartDashboard.putString("Elevator/motor", "Pos:" + 4000);
 		}
 
 /*
@@ -451,14 +461,6 @@ public class Robot extends TimedRobot {
 			}
 	
 		System.err.println(watch.toString());
-
-		backState.input(input.getButton("Operator-Back-Button"));
-		if(backState.getState()) {
-			int Tracker = tracker.getBlocks(true, 1, 8);
-			if(Tracker > 0) {
-				
-			}
-		}
 	}
 
 
