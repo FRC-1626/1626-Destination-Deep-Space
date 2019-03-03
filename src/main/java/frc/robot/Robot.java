@@ -14,9 +14,11 @@ import edu.wpi.first.cameraserver.CameraServer;
 // import edu.wpi.first.cameraserver.CameraServer;
 import java.lang.reflect.InvocationTargetException;
 // import edu.wpi.first.cameraserver.*;
-
+import com.zephyr.pixy.*;
 import frc.robot.Toggle;
-
+import io.github.pseudoresonance.pixy2api.Pixy2;
+import io.github.pseudoresonance.pixy2api.Pixy2CCC;
+import io.github.pseudoresonance.pixy2api.links.SPILink;
 //import sun.tools.jconsole.inspector.Utils;
 import frc.robot.PairOfMotors;
 import java.util.List;
@@ -68,15 +70,20 @@ public class Robot extends TimedRobot {
 	private CameraServer cameraServer;
 	private double previousElevator;
 
-	private List<PairOfMotors> motorPairList;
-
 	private Encoder Encoder;
 	private int SpinCount;
+
+	private List<PairOfMotors> motorPairList;
+
+	private boolean hasPixy = true;
+	private Pixy2CCC tracker;
+	private Pixy2 pixy;
 
 	Toggle backwards;
 	Toggle doMotorBreakIn = new Toggle();
 	Toggle clawState;
 	Toggle boostState;
+	Toggle backState;
 
 	@Override
 	public void robotInit() {
@@ -94,6 +101,7 @@ public class Robot extends TimedRobot {
 		backwards = new Toggle();
 		clawState = new Toggle();
 		boostState = new Toggle();
+		backState = new Toggle();
 
 		System.out.println("initializing actions...");
 		actions = new ActionRecorder().
@@ -159,7 +167,6 @@ public class Robot extends TimedRobot {
 //		testPairOfMotors = new PairOfMotors(2, 3);
 
 		Encoder = new Encoder(0, 6, false);
-
 		
 		ballHolder.setInverted(true);
 //		frontElevator.follow(backElevator);
@@ -235,7 +242,7 @@ public class Robot extends TimedRobot {
 				.withInput("Operator-Back-Button",	xbox.getRawButton(7))
 				.withInput("Elevator-Forward",  	xbox.getTriggerAxis(Hand.kLeft))	// used - elevator back
 				.withInput("Elevator-Back",			xbox.getTriggerAxis(Hand.kRight))	// used - elevator forward
-				.withInput("Operator-DPad",			xbox.getPOV()) // used - set elevator position
+				.withInput("Operator-DPad",			xbox.getPOV()) // used
 				.withInput("Driver-Left", 			driverLeft.getRawAxis(1)) // used - drives left side
 				.withInput("Driver-Right", 			driverRight.getRawAxis(1)) // used - drives right side
 				.withInput("Driver-Left-Trigger", 	driverLeft.getRawButton(1))
@@ -270,10 +277,26 @@ public class Robot extends TimedRobot {
 
 		sparkDiagnostics((CANSparkMax) frontRightSpeed);
 		sparkDiagnostics((CANSparkMax) backRightSpeed);
+
+		if (hasPixy) {
+			pixy = Pixy2.createInstance(Pixy2.LinkType.SPI);
+			pixy.init();
+			tracker = pixy.getCCC();
+			pixy.setLED(0,255,0);
+			Pixy2.Version ver = pixy.getVersionInfo();
+			if (ver != null) {
+				SmartDashboard.putString("Pixy/Version", ver.toString());
+			} else {
+				SmartDashboard.putString("Pixy/Version", "NULL");
+			}
+		}
+
 	}
 
 	public void disabledPeriodic() {
 		actions.disabledPeriodic();
+
+
 	}
 
 	public void robotOperation(DriverInput input) {
@@ -306,6 +329,36 @@ public class Robot extends TimedRobot {
 
 		previousElevator = elevatorAxis;
 //		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
+
+		int dpadAxis = (int) input.getAxis("Operator-DPad");
+		if(dpadAxis == 0) {
+		Encoder.reset();
+			for (SpinCount = Encoder.getRaw(); SpinCount < 40;) {
+				elevator.set(.99);
+			  }
+			elevator.set(0);
+		}
+		if(dpadAxis == 90) {
+		Encoder.reset();
+			for (SpinCount = Encoder.getRaw(); SpinCount < 80;) {
+				elevator.set(.99);
+			  }
+			elevator.set(0);
+		}
+		if(dpadAxis == 180) {
+		Encoder.reset();
+			for (SpinCount = Encoder.getRaw(); SpinCount < 40;) {
+				elevator.set(-.99);
+			  }
+			elevator.set(0);
+		}
+		if(dpadAxis == 270) {
+		Encoder.reset();
+			for (SpinCount = Encoder.getRaw(); SpinCount < 80;) {
+				elevator.set(-.99);
+			  }
+			elevator.set(0);
+		}
 
 /*
 		int dpadAxis = (int) input.getAxis("Operator-DPad");
@@ -371,36 +424,7 @@ public class Robot extends TimedRobot {
 			jumperSpeed.set(0.0);
 			}
 		
-			int dpadAxis = (int) input.getAxis("Operator-DPad");
-			if(dpadAxis == 0) {
-			Encoder.reset();
-				for (SpinCount = Encoder.getRaw(); SpinCount < 40;) {
-					elevator.set(.99);
-				  }
-				elevator.set(0);
-			}
-			if(dpadAxis == 90) {
-			Encoder.reset();
-				for (SpinCount = Encoder.getRaw(); SpinCount < 80;) {
-					elevator.set(.99);
-				  }
-				elevator.set(0);
-			}
-			if(dpadAxis == 180) {
-			Encoder.reset();
-				for (SpinCount = Encoder.getRaw(); SpinCount < 40;) {
-					elevator.set(-.99);
-				  }
-				elevator.set(0);
-			}
-			if(dpadAxis == 270) {
-			Encoder.reset();
-				for (SpinCount = Encoder.getRaw(); SpinCount < 80;) {
-					elevator.set(-.99);
-				  }
-				elevator.set(0);
-			}
-	//		if (input.getButton("Operator-Back-Button"))
+//		if (input.getButton("Operator-Back-Button"))
 //			{
 //			frontJumper.set(1.0);
 //			rearJumper.set(1.0);
@@ -427,6 +451,14 @@ public class Robot extends TimedRobot {
 			}
 	
 		System.err.println(watch.toString());
+
+		backState.input(input.getButton("Operator-Back-Button"));
+		if(backState.getState()) {
+			int Tracker = tracker.getBlocks(true, 1, 8);
+			if(Tracker > 0) {
+				
+			}
+		}
 	}
 
 
