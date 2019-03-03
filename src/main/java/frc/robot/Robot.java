@@ -481,8 +481,17 @@ public void showPixy() {
 	if (val > 0) {
 		SmartDashboard.putString("Pixy/Tracker", "Return: " + val);
 		List<Pixy2CCC.Block> blocks = tracker.getBlocks();
-		Pixy2CCC.Block block = blocks.get(0);
-		SmartDashboard.putString("Pixy/Block","x:" + block.getX() + " y:" + block.getY() + " s:" + block.getWidth() * block.getHeight());
+
+		int i=1;
+		for (Pixy2CCC.Block block : blocks) {
+			int size = block.getWidth() * block.getHeight();
+			if (size > 1000) {
+				SmartDashboard.putString("Pixy/Block-" + i++, "x:" + block.getX() + " y:" + block.getY() + " s:" + size);
+			}
+			if (i >+ 2) {
+				break;
+			}
+		}
 	}	
 }
 
