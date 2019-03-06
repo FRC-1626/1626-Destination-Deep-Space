@@ -3,9 +3,11 @@ package frc.robot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+import com.ctre.phoenix.motorcontrol.SensorCollection;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import edu.wpi.first.wpilibj.*;
+
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
@@ -198,11 +200,15 @@ public class Robot extends TimedRobot {
 		elevator.configAllowableClosedloopError(0, 0, 30);
 
 		/* Config Position Closed Loop gains in slot0, tsypically kF stays zero. */
+
+		SensorCollection sc = new SensorCollection(elevator);
+
 		elevator.config_kF(0, 0.1, 30);
-		elevator.config_kP(0, .25, 30);
+		elevator.config_kP(0, 0.1, 30);
 		elevator.config_kI(0, 0, 30);
 		elevator.config_kD(0, 0, 30);
-		elevator.setSensorPhase(true);
+		elevator.setSensorPhase(false);
+		sc.setQuadraturePosition(0, 30);
 	}
 
 	@Override
@@ -319,7 +325,7 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putString("DB/String 1", "" + gameData + startingPosition);
 		
 		double leftAxis = -1.0 * input.getAxis("Driver-Left");
-		double rightAxis = -1.0 * input.getAxis("Driver-Right");
+		double rightAxis = 1.0 * input.getAxis("Driver-Right");
 		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 
@@ -351,22 +357,22 @@ public class Robot extends TimedRobot {
 		int dpadAxis = (int) input.getAxis("Operator-DPad");
 		if(dpadAxis == 0) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, 1000);
+			elevator.set(ControlMode.Position, 100000);
 			SmartDashboard.putString("Elevator/motor", "Pos:" + 1000);
 		}
 		if(dpadAxis == 90) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, 2000);
+			elevator.set(ControlMode.Position, 200000);
 			SmartDashboard.putString("Elevator/motor", "Pos:" + 2000);
 		}
 		if(dpadAxis == 180) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, 3000);
+			elevator.set(ControlMode.Position, 300000);
 			SmartDashboard.putString("Elevator/motor", "Pos:" + 3000);
 		}
 		if(dpadAxis == 270) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, 4000);
+			elevator.set(ControlMode.Position, 400000);
 			SmartDashboard.putString("Elevator/motor", "Pos:" + 4000);
 		}
 
@@ -389,8 +395,8 @@ public class Robot extends TimedRobot {
 		
 		if(input.getAxis("Operator-Left-Stick") != 0)
 			{
-			leftArm.set(input.getAxis("Operator-Left-Stick"));
-			rightArm.set(input.getAxis("Operator-Left-Stick") * -1);
+			leftArm.set(input.getAxis("Operator-Left-Stick") * 0.75);
+			rightArm.set(input.getAxis("Operator-Left-Stick") * -0.75);
 			}
 		else
 			{
