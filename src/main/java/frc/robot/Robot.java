@@ -416,50 +416,41 @@ public class Robot extends TimedRobot {
 		}
 */
 		
-		if(input.getAxis("Operator-Left-Stick") != 0)
-			{
+		if(input.getAxis("Operator-Left-Stick") != 0) {
 			leftArm.set(input.getAxis("Operator-Left-Stick") * 0.75);
 			rightArm.set(input.getAxis("Operator-Left-Stick") * -0.75);
 			}
-		else
-			{
+		else {
 			leftArm.set(0);
 			rightArm.set(0);
 			}
 
 		clawState.input(input.getButton("Operator-Y-Button"));
-		if(clawState.getState())
-			{
+		if(clawState.getState()) {
 			claw.set(Value.kForward);
 			}
-		else
-			{
+		else {
 			claw.set(Value.kReverse);
 			}
 		
 		boostState.input(input.getButton("Operator-Start-Button"));
-		if(boostState.getState())
-			{
+		if(boostState.getState()) {
 			System.err.println("Boost forward");
 			boost.set(Value.kForward);
 			}
-		else
-			{
+		else {
 			System.err.println("Boost reverse");
 			boost.set(Value.kReverse);
 			}
 
 
-		if(input.getButton("Operator-Right-Bumper"))
-			{
+		if(input.getButton("Operator-Right-Bumper")) {
 			jumperSpeed.set(-1.0);
 			}
-		else if(input.getButton("Operator-Left-Bumper"))
-			{
+		else if(input.getButton("Operator-Left-Bumper")) {
 			jumperSpeed.set(1.0);
 			}
-		else
-			{
+		else {
 			jumperSpeed.set(0.0);
 			}
 		
