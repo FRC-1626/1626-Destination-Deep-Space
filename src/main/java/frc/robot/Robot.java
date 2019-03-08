@@ -141,11 +141,12 @@ public class Robot extends TimedRobot {
 		backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
 
 		leftArm				= new WPI_TalonSRX(2); 
-
 		rightArm			= new WPI_TalonSRX(3);
+
 		elevator			= new WPI_TalonSRX(6);
 
 		ballHolder			= new WPI_TalonSRX(7);
+
 		frontJumper			= new WPI_TalonSRX(12);
 		rearJumper			= new WPI_TalonSRX(13);
 
@@ -154,6 +155,11 @@ public class Robot extends TimedRobot {
 
 		ManualElevator = 0;
 		
+		leftArm.configContinuousCurrentLimit(25, 30);
+		rightArm.configContinuousCurrentLimit(25, 30);
+		leftArm.enableCurrentLimit(true);
+		rightArm.enableCurrentLimit(true);
+
 		claw = new DoubleSolenoid(2, 3);
 		claw.set(Value.kReverse);
 
@@ -223,20 +229,24 @@ public class Robot extends TimedRobot {
 		
 		autoLoopCounter = 0;
 		gameData = DriverStation.getInstance().getGameSpecificMessage();
-		actions.autonomousInit(gameData.substring(0,2));
+		actions.autonomousInit("LLL");
 
   	}
 
 	@Override
 	public void autonomousPeriodic() {
 	
-//		String itemLocationString = gameData.substring(0, 2) + startingPosition;
 		try{
-			if (actions != null) actions.longPlayback(this, -1);
-			else Timer.delay(0.010);
+			if ((actions != null) && actions.hasInputs()) {
+				actions.longPlayback(this, -1);
+			}
+			else {
+				teleopPeriodic();
+			}
 		}catch (Exception e) { 
-			System.out.println("AP: " + e.toString()); 
-		}  // pixycam.b  ();
+			System.out.println("AP: " + e.toString());
+			e.printStackTrace(System.out);
+		}
 
   	} 
 
@@ -297,18 +307,6 @@ public class Robot extends TimedRobot {
 		sparkDiagnostics((CANSparkMax) frontRightSpeed);
 		sparkDiagnostics((CANSparkMax) backRightSpeed);
 
-		if (hasPixy) {
-			pixy = Pixy2.createInstance(Pixy2.LinkType.SPI);
-			pixy.init();
-			tracker = pixy.getCCC();
-			pixy.setLED(0,255,0);
-			Pixy2.Version ver = pixy.getVersionInfo();
-			if (ver != null) {
-				SmartDashboard.putString("Pixy/Version", ver.toString());
-			} else {
-				SmartDashboard.putString("Pixy/Version", "NULL");
-			}
-		}
 
 	}
 
@@ -328,7 +326,7 @@ public class Robot extends TimedRobot {
 		double rightAxis = 1.0 * input.getAxis("Driver-Right");
 		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
-
+		
 		backwards.input(input.getButton("Driver-Left-8"));
 		SmartDashboard.putBoolean("DB/LED 1", backwards.getState());
 
@@ -357,23 +355,23 @@ public class Robot extends TimedRobot {
 		int dpadAxis = (int) input.getAxis("Operator-DPad");
 		if(dpadAxis == 0) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, 100000);
+			elevator.set(ControlMode.Position, 0);
 			SmartDashboard.putString("Elevator/motor", "Pos:" + 1000);
 		}
 		if(dpadAxis == 90) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, 200000);
-			SmartDashboard.putString("Elevator/motor", "Pos:" + 2000);
+			elevator.set(ControlMode.Position, -6924);
+			SmartDashboard.putString("Elevator/motor", "Pos:" + 90);
 		}
 		if(dpadAxis == 180) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, 300000);
-			SmartDashboard.putString("Elevator/motor", "Pos:" + 3000);
+			elevator.set(ControlMode.Position, -8000);
+			SmartDashboard.putString("Elevator/motor", "Pos:" + 180);
 		}
 		if(dpadAxis == 270) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, 400000);
-			SmartDashboard.putString("Elevator/motor", "Pos:" + 4000);
+			elevator.set(ControlMode.Position, -9000);
+			SmartDashboard.putString("Elevator/motor", "Pos:" + 270);
 		}
 
 /*

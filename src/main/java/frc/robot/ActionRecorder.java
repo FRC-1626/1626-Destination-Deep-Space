@@ -187,9 +187,22 @@ public class ActionRecorder
 			}
 
 			SmartDashboard.putString("Auto/FileName" , name);
+			SmartDashboard.putString("DB/String 0", name);
 		}
 	}
 	
+	public boolean hasInputs() {
+		boolean doesHave=false;
+		if ((driverInputs!=null) && (driverInputs.size() != 0)) {
+			if (playbackIterator != null) {
+				doesHave = playbackIterator.hasNext();
+			} else {
+				doesHave = true;
+			}
+		}
+
+		return doesHave;
+	}
 	private int getAutoFileList()
 	{
 		autoFileList=new ArrayList<File>();
@@ -368,7 +381,7 @@ public class ActionRecorder
 	
 	public void longPlayback(RobotBase robot, int nCycles)
 	{
-		while (((nCycles < 0) || nCycles > 0) && (robot.isAutonomous() && robot.isEnabled()))
+		while (((nCycles > 0) || (nCycles == -1)) && (robot.isAutonomous() && robot.isEnabled()))
 		{
 			playback();
 			nCycles--;
@@ -381,7 +394,6 @@ public class ActionRecorder
 		if ((driverInputs==null) || (driverInputs.size() == 0))
 		{
 			System.out.println("No driver inputs to playback");
-			Timer.delay(0.050);
 			return;
 		}
 		
@@ -430,9 +442,6 @@ public class ActionRecorder
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		} else
-		{
-			Timer.delay(0.010);
 		}
 	}
 	
