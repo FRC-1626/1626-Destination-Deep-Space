@@ -43,6 +43,8 @@ public class Robot extends TimedRobot {
 	private Joystick driverLeft;
 	private Joystick driverRight;
 
+	private DriverStation driverStation;
+
 	private SpeedController frontLeftSpeed;
 	private SpeedController frontRightSpeed;
 	private SpeedController backLeftSpeed;
@@ -86,6 +88,10 @@ public class Robot extends TimedRobot {
 	Toggle boostState;
 	Toggle dpadState;
 
+	private int normArmCurrent=15;
+	private int maxArmCurrent=35;
+	private int armCurrent=normArmCurrent;
+
 	@Override
 	public void robotInit() {
 
@@ -95,6 +101,8 @@ public class Robot extends TimedRobot {
 		camera = new UsbCamera("USB Camera 0", 1);
 		cameraServer.addCamera(camera);
 		cameraServer.startAutomaticCapture();
+
+		driverStation = DriverStation.getInstance();
 
 		driverLeft = new Joystick(0);
 		driverRight = new Joystick(1);
@@ -155,11 +163,6 @@ public class Robot extends TimedRobot {
 
 		ManualElevator = 0;
 		
-		leftArm.configContinuousCurrentLimit(25, 30);
-		rightArm.configContinuousCurrentLimit(25, 30);
-		leftArm.enableCurrentLimit(true);
-		rightArm.enableCurrentLimit(true);
-
 		claw = new DoubleSolenoid(2, 3);
 		claw.set(Value.kReverse);
 
@@ -221,6 +224,8 @@ public class Robot extends TimedRobot {
 	public void robotPeriodic() {
 		double pressure = (250.0 * (pressureSensor.getVoltage() / 5.0)) - 13;
 		SmartDashboard.putString("DB/String 4", String.format("%.0f", pressure));
+
+
 	}
 
 
@@ -260,6 +265,19 @@ public class Robot extends TimedRobot {
 	public void teleopPeriodic() {
 
 		RobotStopWatch watch = new RobotStopWatch("teleopPeriodic");
+
+		double matchTime = driverStation.getMatchTime();
+		boolean opControl = driverStation.isOperatorControl();
+
+//		SmartDashboard.putString("DB/String 2", String.format("%.1f %s", matchTime, opControl?"T":"A"));
+		if (opControl && (matchTime < 30.0)) {
+			if (armCurrent < maxArmCurrent) {
+				rightArm.configContinuousCurrentLimit(maxArmCurrent, 30);
+				leftArm.configContinuousCurrentLimit(maxArmCurrent, 30);
+				armCurrent = maxArmCurrent;
+			}
+		}
+//		SmartDashboard.putString("DB/String 3", String.valueOf(armCurrent));
 	
 		try {
 			actions.input(new DriverInput()
@@ -306,6 +324,13 @@ public class Robot extends TimedRobot {
 
 		sparkDiagnostics((CANSparkMax) frontRightSpeed);
 		sparkDiagnostics((CANSparkMax) backRightSpeed);
+
+
+		leftArm.configContinuousCurrentLimit(normArmCurrent, 30);
+		rightArm.configContinuousCurrentLimit(normArmCurrent, 30);
+		armCurrent=normArmCurrent;
+		leftArm.enableCurrentLimit(true);
+		rightArm.enableCurrentLimit(true);
 
 
 	}
