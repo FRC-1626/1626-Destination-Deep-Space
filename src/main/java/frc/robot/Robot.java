@@ -344,8 +344,6 @@ public class Robot extends TimedRobot {
 	public void robotOperation(DriverInput input) {
 		
 		RobotStopWatch watch = new RobotStopWatch("robotOperation");
-
-		SmartDashboard.putString("DB/String 1", "" + gameData + startingPosition);
 		
 		double leftAxis = -1.0 * input.getAxis("Driver-Left");
 		double rightAxis = 1.0 * input.getAxis("Driver-Right");
@@ -353,7 +351,7 @@ public class Robot extends TimedRobot {
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 		
 		backwards.input(input.getButton("Driver-Left-8"));
-		SmartDashboard.putBoolean("DB/LED 1", backwards.getState());
+		SmartDashboard.putBoolean("Backwards State", backwards.getState());
 
 		if (!backwards.getState()) drive.tankDrive(-1 * 1 * leftAxis, -1 * 1 * rightAxis, false);
 		else drive.tankDrive(1 * rightAxis, 1 * leftAxis, false);
@@ -365,12 +363,12 @@ public class Robot extends TimedRobot {
 			ManualElevator = 1;
 //			if (Math.abs(previousElevator) < 0.10) elevatorBrake.set (Value.kForward);
 			elevator.set(ControlMode.PercentOutput, elevatorAxis);
-			SmartDashboard.putString("Elevator/motor", "%" + elevatorAxis);
+//			SmartDashboard.putString("Elevator/motor", "%" + elevatorAxis);
 		} else {
 			if(ManualElevator == 1) {
 //			elevatorBrake.set(Value.kReverse);
 			elevator.set(ControlMode.PercentOutput, 0);
-			SmartDashboard.putString("Elevator/motor", "%" + 0);
+//			SmartDashboard.putString("Elevator/motor", "%" + 0);
 			}
 		}
 
@@ -381,40 +379,20 @@ public class Robot extends TimedRobot {
 		if(dpadAxis == 0) {
 			ManualElevator = 0;
 			elevator.set(ControlMode.Position, 0);
-			SmartDashboard.putString("Elevator/motor", "Pos:" + 1000);
 		}
 		if(dpadAxis == 90) {
 			ManualElevator = 0;
 			elevator.set(ControlMode.Position, -6924);
-			SmartDashboard.putString("Elevator/motor", "Pos:" + 90);
 		}
 		if(dpadAxis == 180) {
 			ManualElevator = 0;
 			elevator.set(ControlMode.Position, -8000);
-			SmartDashboard.putString("Elevator/motor", "Pos:" + 180);
 		}
 		if(dpadAxis == 270) {
 			ManualElevator = 0;
 			elevator.set(ControlMode.Position, -9000);
-			SmartDashboard.putString("Elevator/motor", "Pos:" + 270);
 		}
 
-/*
-		int dpadAxis = (int) input.getAxis("Operator-DPad");
-		switch(dpadAxis){
-		case 0:
-			elevator.set(ControlMode.Position, 0);
-			break;
-		case 90:
-			elevator.set(ControlMode.Position, 100);
-			break;
-		case 180:
-			elevator.set(ControlMode.Position, 200);
-			break;
-		case 270:
-			elevator.set(ControlMode.Position, 300);
-		}
-*/
 		
 		if(input.getAxis("Operator-Left-Stick") != 0) {
 			leftArm.set(input.getAxis("Operator-Left-Stick") * 0.75);
@@ -464,7 +442,7 @@ public class Robot extends TimedRobot {
 //			jumperSpeed.set(0.0);
 //			}
 		
-		SmartDashboard.putString("DB/String 6", "" + elevator.getSelectedSensorPosition(0));
+		SmartDashboard.putString("Elevator Sensor Position", "" + elevator.getSelectedSensorPosition(0));
 
 		if (input.getButton("Operator-X-Button")) {
 			ballHolder.set(1.0);
@@ -473,7 +451,7 @@ public class Robot extends TimedRobot {
 		} else if (input.getButton("Operator-B-Button")) {
 			ballHolder.set(-1.0);
 		} else {
-			ballHolder.set(0.0);	
+			ballHolder.set(0.0);
 		}
 
 		for (PairOfMotors motorPair : motorPairList) {
