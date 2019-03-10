@@ -196,11 +196,11 @@ public class Robot extends TimedRobot {
 		motorPairList.add(new PairOfMotors("ArmDrive", 6,7));
 		motorPairList.add(new PairOfMotors("Climb", 12,13));
 
-		for (PairOfMotors motorPair : motorPairList) {
-            SmartDashboard.putString(
-                "Motors/" + motorPair.getName(), 
-                "No motor current differences detected");
-		}
+//		for (PairOfMotors motorPair : motorPairList) {
+//            SmartDashboard.putString(
+//            "Motors/" + motorPair.getName(), 
+//            "No motor current differences detected");
+//		}
 	
 		elevator.configNominalOutputForward(0, 30);
 		elevator.configNominalOutputReverse(0, 30);
@@ -345,7 +345,7 @@ public class Robot extends TimedRobot {
 		
 		RobotStopWatch watch = new RobotStopWatch("robotOperation");
 		
-		double leftAxis = -1.0 * input.getAxis("Driver-Left");
+		double leftAxis = 1.0 * input.getAxis("Driver-Left");
 		double rightAxis = 1.0 * input.getAxis("Driver-Right");
 		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
