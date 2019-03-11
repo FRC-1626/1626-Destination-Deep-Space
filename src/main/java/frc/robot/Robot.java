@@ -193,7 +193,7 @@ public class Robot extends TimedRobot {
 
 		motorPairList.add(new PairOfMotors("LeftDrive", 0, 1));
 		motorPairList.add(new PairOfMotors("RightDrive", 14, 15));
-		motorPairList.add(new PairOfMotors("ArmDrive", 6,7));
+		motorPairList.add(new PairOfMotors("ArmDrive", 2,3));
 		motorPairList.add(new PairOfMotors("Climb", 12,13));
 
 //		for (PairOfMotors motorPair : motorPairList) {
@@ -332,6 +332,10 @@ public class Robot extends TimedRobot {
 		leftArm.enableCurrentLimit(true);
 		rightArm.enableCurrentLimit(true);
 
+		for (PairOfMotors pair : motorPairList) {
+			pair.reset();
+		}
+
 
 	}
 
@@ -346,15 +350,15 @@ public class Robot extends TimedRobot {
 		RobotStopWatch watch = new RobotStopWatch("robotOperation");
 		
 		double leftAxis = 1.0 * input.getAxis("Driver-Left");
-		double rightAxis = 1.0 * input.getAxis("Driver-Right");
+		double rightAxis = -1.0 * input.getAxis("Driver-Right");
 		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 		
 		backwards.input(input.getButton("Driver-Left-8"));
 		SmartDashboard.putBoolean("Backwards State", backwards.getState());
 
-		if (!backwards.getState()) drive.tankDrive(-1 * 1 * leftAxis, -1 * 1 * rightAxis, false);
-		else drive.tankDrive(1 * rightAxis, 1 * leftAxis, false);
+		if (!backwards.getState()) drive.tankDrive(-1 * leftAxis, -1 * rightAxis, false);
+		else drive.tankDrive(rightAxis, leftAxis, false);
 
 //		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
 

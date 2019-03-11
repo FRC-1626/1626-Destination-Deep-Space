@@ -58,6 +58,11 @@ public class PairOfMotors {
         double maxAmps = Math.max(current1, current2);
         double minAmps = Math.min(current1, current2);
 
+        SmartDashboard.putString(
+            "Motors/Current/" + pairName,
+            String.valueOf(maxAmps) + "/" + String.valueOf(minAmps) + 
+            "@" + System.currentTimeMillis() +":" + current1 + "/" + current2);
+
         if ((maxAmps > 10.0) && (minAmps < (maxAmps - 10))) {
             if (inBounds == true) {
                 inBounds = false;
@@ -76,6 +81,12 @@ public class PairOfMotors {
 
         
         return inBounds  ;
+    }
+
+    public void reset() {
+        inBounds = true;
+        startedOut=-1;
+        msecAmpsDifferent=0;
     }
 
 }
