@@ -390,11 +390,11 @@ public class Robot extends TimedRobot {
 		}
 		if(dpadAxis == 180) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, -8000);
+			elevator.set(ControlMode.Position, -3869);
 		}
 		if(dpadAxis == 270) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, -9000);
+			elevator.set(ControlMode.Position, -9367);
 		}
 
 		
