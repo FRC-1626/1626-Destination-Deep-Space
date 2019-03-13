@@ -143,10 +143,10 @@ public class Robot extends TimedRobot {
 
 
 		System.err.println("Initializing Speed Controllers");
-		frontLeftSpeed		= new CANSparkMax(20, MotorType.kBrushless);
-		backLeftSpeed		= new CANSparkMax(21, MotorType.kBrushless);
-		frontRightSpeed		= new CANSparkMax(14, MotorType.kBrushless);
-		backRightSpeed		= new CANSparkMax(15, MotorType.kBrushless);
+		frontLeftSpeed		= new CANSparkMax(14, MotorType.kBrushless);
+		backLeftSpeed		= new CANSparkMax(15, MotorType.kBrushless);
+		frontRightSpeed		= new CANSparkMax(20, MotorType.kBrushless);
+		backRightSpeed		= new CANSparkMax(21, MotorType.kBrushless);
 
 		leftArm				= new WPI_TalonSRX(2); 
 		rightArm			= new WPI_TalonSRX(3);
@@ -164,7 +164,7 @@ public class Robot extends TimedRobot {
 		ManualElevator = 0;
 		
 		claw = new DoubleSolenoid(2, 3);
-		claw.set(Value.kReverse);
+		claw.set(Value.kForward);
 
 		boost = new DoubleSolenoid(0, 1);
 		boost.set(Value.kReverse);
@@ -176,11 +176,7 @@ public class Robot extends TimedRobot {
 
 		jumperSpeed = new SpeedControllerGroup(frontJumper, rearJumper);
 		
-//		System.err.println("Initializing PixyCam");
-// 		pixycam = new Pixy(Port.kOnboardCS0, 0);
 
-//		testPairOfMotors = new PairOfMotors(2, 3);
-		
 		ballHolder.setInverted(true);
 //		frontElevator.follow(backElevator);
 //		double value = 1; 
@@ -191,8 +187,8 @@ public class Robot extends TimedRobot {
 
 		motorPairList = new ArrayList<PairOfMotors>();
 
-		motorPairList.add(new PairOfMotors("LeftDrive", 0, 1));
-		motorPairList.add(new PairOfMotors("RightDrive", 14, 15));
+		motorPairList.add(new PairOfMotors("LeftDrive", 14, 15));
+		motorPairList.add(new PairOfMotors("RightDrive", 0, 1));
 		motorPairList.add(new PairOfMotors("ArmDrive", 2,3));
 		motorPairList.add(new PairOfMotors("Climb", 12,13));
 
@@ -277,6 +273,10 @@ public class Robot extends TimedRobot {
 				armCurrent = maxArmCurrent;
 			}
 		}
+
+		if (opControl && (matchTime < 20)) {
+			compressor.stop();
+		}
 //		SmartDashboard.putString("DB/String 3", String.valueOf(armCurrent));
 	
 		try {
@@ -350,7 +350,7 @@ public class Robot extends TimedRobot {
 		RobotStopWatch watch = new RobotStopWatch("robotOperation");
 		
 		double leftAxis = 1.0 * input.getAxis("Driver-Left");
-		double rightAxis = -1.0 * input.getAxis("Driver-Right");
+		double rightAxis = 1.0 * input.getAxis("Driver-Right");
 		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 		
@@ -390,11 +390,11 @@ public class Robot extends TimedRobot {
 		}
 		if(dpadAxis == 180) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, -3869);
+			elevator.set(ControlMode.Position, -9589);
 		}
 		if(dpadAxis == 270) {
 			ManualElevator = 0;
-			elevator.set(ControlMode.Position, -9367);
+			elevator.set(ControlMode.Position, -23719);
 		}
 
 		
@@ -409,10 +409,10 @@ public class Robot extends TimedRobot {
 
 		clawState.input(input.getButton("Operator-Y-Button"));
 		if(clawState.getState()) {
-			claw.set(Value.kForward);
+			claw.set(Value.kReverse);
 			}
 		else {
-			claw.set(Value.kReverse);
+			claw.set(Value.kForward);
 			}
 		
 		boostState.input(input.getButton("Operator-Start-Button"));
