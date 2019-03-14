@@ -95,7 +95,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void robotInit() {
 
-		System.err.println("Starting the Deep Space Robot");
+		System.out.println("Starting the Deep Space Robot");
 
 		cameraServer = CameraServer.getInstance();
 		camera = new UsbCamera("USB Camera 0", 1);
@@ -141,8 +141,6 @@ public class Robot extends TimedRobot {
 		DriverInput.nameInput("Operator-DPad");
 		DriverInput.nameInput("Driver-Left-8");
 
-
-		System.err.println("Initializing Speed Controllers");
 		frontLeftSpeed		= new CANSparkMax(14, MotorType.kBrushless);
 		backLeftSpeed		= new CANSparkMax(15, MotorType.kBrushless);
 		frontRightSpeed		= new CANSparkMax(20, MotorType.kBrushless);
@@ -169,13 +167,11 @@ public class Robot extends TimedRobot {
 		boost = new DoubleSolenoid(0, 1);
 		boost.set(Value.kReverse);
 
-		System.err.println("Initializing Drive Train");
 		leftSpeed = new SpeedControllerGroup(frontLeftSpeed, backLeftSpeed);
 		rightSpeed = new SpeedControllerGroup(frontRightSpeed, backRightSpeed);
 		drive = new DifferentialDrive(leftSpeed, rightSpeed);
 
 		jumperSpeed = new SpeedControllerGroup(frontJumper, rearJumper);
-		
 
 		ballHolder.setInverted(true);
 //		frontElevator.follow(backElevator);
@@ -274,9 +270,27 @@ public class Robot extends TimedRobot {
 			}
 		}
 
-		if (opControl && (matchTime < 20)) {
+		if (opControl && (matchTime < 20) && (matchTime > 0)) {
 			compressor.stop();
+			System.out.println("Stopped Compressor at " + matchTime);
+
 		}
+
+		if (frontLeftSpeed.getInverted()) {
+			System.err.println("FrontLeftSpeed is Inverted");
+		}
+		if (backLeftSpeed.getInverted()) {
+			System.err.println("FrontLeftSpeed is Inverted");
+		}
+		if (frontRightSpeed.getInverted()) {
+			System.err.println("FrontLeftSpeed is Inverted");
+		}
+		if (backRightSpeed.getInverted()) {
+			System.err.println("FrontLeftSpeed is Inverted");
+		}
+
+
+
 //		SmartDashboard.putString("DB/String 3", String.valueOf(armCurrent));
 	
 		try {
@@ -308,7 +322,7 @@ public class Robot extends TimedRobot {
 			e.printStackTrace();
 		}
 
-		System.err.println(watch.toString());
+//		System.err.println(watch.toString());
 		
 		// pixycam.getAllDetectedObjects();
 		
@@ -325,7 +339,6 @@ public class Robot extends TimedRobot {
 		sparkDiagnostics((CANSparkMax) frontRightSpeed);
 		sparkDiagnostics((CANSparkMax) backRightSpeed);
 
-
 		leftArm.configContinuousCurrentLimit(normArmCurrent, 30);
 		rightArm.configContinuousCurrentLimit(normArmCurrent, 30);
 		armCurrent=normArmCurrent;
@@ -335,6 +348,8 @@ public class Robot extends TimedRobot {
 		for (PairOfMotors pair : motorPairList) {
 			pair.reset();
 		}
+
+		compressor.start();
 
 
 	}
@@ -417,11 +432,9 @@ public class Robot extends TimedRobot {
 		
 		boostState.input(input.getButton("Operator-Start-Button"));
 		if(boostState.getState()) {
-			System.err.println("Boost forward");
 			boost.set(Value.kForward);
 			}
 		else {
-			System.err.println("Boost reverse");
 			boost.set(Value.kReverse);
 			}
 
@@ -462,47 +475,9 @@ public class Robot extends TimedRobot {
 			motorPair.isCurrentDifferent();
 			}
 	
-		System.err.println(watch.toString());
+//		System.err.println(watch.toString());
 	}
 
-
-
-/*
-
-clawState.input(input.getButton("Operator-Y-Button"));
-if(clawState.getState())
-	{
-	Claw = Claw*-1;
-	if(Claw == 1)
-		{
-			Solenoid0.set(true);
-			Solenoid1.set(true);
-			Solenoid2.set(true);
-		}
-	else
-		{
-			Solenoid0.set(false);
-			Solenoid1.set(false);
-			Solenoid2.set(false);
-		}
-	}
-
-*/
-
-
-//	public boolean PDBCurrentCheck(double percent) {
-//
-//		for (int i = 0; i < 15; i++) {
-//			for (int j = 0; j < 15; j++) {
-//				if (
-//					PDB.getCurrent(i) - PDB.getCurrent(j) > 0.1 * PDB.getCurrent(i) ||
-//					PDB.getCurrent(i) - PDB.getCurrent(j) > 0.1 * PDB.getCurrent(j)
-//				) return true;
-//			}
-//		}
-//		return false;
-//
-//	}
 
 public void sparkDiagnostics(CANSparkMax controller) {
 
