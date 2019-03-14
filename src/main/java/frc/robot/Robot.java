@@ -364,8 +364,8 @@ public class Robot extends TimedRobot {
 		
 		RobotStopWatch watch = new RobotStopWatch("robotOperation");
 		
-		double leftAxis = 1.0 * input.getAxis("Driver-Left");
-		double rightAxis = 1.0 * input.getAxis("Driver-Right");
+		double leftAxis = 0.99 * input.getAxis("Driver-Left");
+		double rightAxis = 0.99 * input.getAxis("Driver-Right");
 		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 		
