@@ -76,6 +76,8 @@ public class Robot extends TimedRobot {
 
 	private int ManualElevator = 0;
 
+	private double  SpeedVariable = 1;
+
 	private List<PairOfMotors> motorPairList;
 
 	private boolean hasPixy = true;
@@ -217,7 +219,32 @@ public class Robot extends TimedRobot {
 		double pressure = (250.0 * (pressureSensor.getVoltage() / 5.0)) - 13;
 		SmartDashboard.putString("DB/String 4", String.format("%.0f", pressure));
 
+		CANSparkMax[] rightDriveControllers = {(CANSparkMax)frontRightSpeed, (CANSparkMax)backRightSpeed};
 
+		StringBuffer str = new StringBuffer();
+		for (CANSparkMax controller : rightDriveControllers) {
+			double temp=controller.getMotorTemperature();
+			int id=controller.getDeviceId();
+			if (str.length() > 0) {
+				str.append(", ");
+			}
+			str.append(String.format("%.0f(%d)", temp, id-20));
+		}
+		SmartDashboard.putString("DB/String 2", str.toString());
+
+		CANSparkMax[] leftDriveControllers = {(CANSparkMax)frontLeftSpeed, (CANSparkMax)backLeftSpeed};
+
+		str = new StringBuffer();
+
+		for (CANSparkMax motor : leftDriveControllers) {
+			double temp=motor.getMotorTemperature();
+			int id=motor.getDeviceId();
+			if (str.length() > 0) {
+				str.append(", ");
+			}
+			str.append(String.format("%.0f(%d)", temp, id));
+		}
+		SmartDashboard.putString("DB/String 3", str.toString());
 	}
 
 
@@ -276,20 +303,6 @@ public class Robot extends TimedRobot {
 
 		}
 
-		if (frontLeftSpeed.getInverted()) {
-			System.err.println("FrontLeftSpeed is Inverted");
-		}
-		if (backLeftSpeed.getInverted()) {
-			System.err.println("FrontLeftSpeed is Inverted");
-		}
-		if (frontRightSpeed.getInverted()) {
-			System.err.println("FrontLeftSpeed is Inverted");
-		}
-		if (backRightSpeed.getInverted()) {
-			System.err.println("FrontLeftSpeed is Inverted");
-		}
-
-
 
 //		SmartDashboard.putString("DB/String 3", String.valueOf(armCurrent));
 	
@@ -311,6 +324,8 @@ public class Robot extends TimedRobot {
 				.withInput("Operator-Left-Bumper",	xbox.getBumper(Hand.kLeft)) // used - ball scoop
 				.withInput("Operator-Right-Bumper", xbox.getBumper(Hand.kRight)) // used - ball scoop
 				.withInput("Driver-Left-8", 		driverLeft.getRawButton(8)) // used - enables backwards
+				.withInput("Driver-Left-7", 		driverLeft.getRawButton(7)) // used - speed changer one
+				.withInput("Driver-Left-6", 		driverLeft.getRawButton(6)) // used - speed changer two
 				.withInput("Operator-Left-Stick",	xbox.getY(Hand.kLeft)) // used - arm movement
 			);	
 		
@@ -364,8 +379,8 @@ public class Robot extends TimedRobot {
 		
 		RobotStopWatch watch = new RobotStopWatch("robotOperation");
 		
-		double leftAxis = 0.99 * input.getAxis("Driver-Left");
-		double rightAxis = 0.99 * input.getAxis("Driver-Right");
+		double leftAxis = SpeedVariable * input.getAxis("Driver-Left");
+		double rightAxis = SpeedVariable * input.getAxis("Driver-Right");
 		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
 		
@@ -376,6 +391,13 @@ public class Robot extends TimedRobot {
 		else drive.tankDrive(rightAxis, leftAxis, false);
 
 //		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
+
+		if(input.getButton("Driver-Left-6")) {
+			SpeedVariable = .25;
+		}
+		if(input.getButton("Driver-Left-7")) {
+			SpeedVariable = 1;
+		}
 
 		double elevatorAxis = input.getAxis("Elevator-Forward") - input.getAxis("Elevator-Back");
 		if (Math.abs(elevatorAxis) > 0.10) {
@@ -394,6 +416,7 @@ public class Robot extends TimedRobot {
 		previousElevator = elevatorAxis;
 //		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
 
+
 		int dpadAxis = (int) input.getAxis("Operator-DPad");
 		if(dpadAxis == 0) {
 			ManualElevator = 0;
@@ -411,8 +434,9 @@ public class Robot extends TimedRobot {
 			ManualElevator = 0;
 			elevator.set(ControlMode.Position, -23719);
 		}
-
 		
+
+
 		if(input.getAxis("Operator-Left-Stick") != 0) {
 			leftArm.set(input.getAxis("Operator-Left-Stick") * 0.75);
 			rightArm.set(input.getAxis("Operator-Left-Stick") * -0.75);
@@ -423,7 +447,7 @@ public class Robot extends TimedRobot {
 			}
 
 		clawState.input(input.getButton("Operator-Y-Button"));
-		if(clawState.getState()) {
+		if(clawState.getState()) {   
 			claw.set(Value.kReverse);
 			}
 		else {
@@ -448,7 +472,7 @@ public class Robot extends TimedRobot {
 		else {
 			jumperSpeed.set(0.0);
 			}
-		
+	
 //		if (input.getButton("Operator-Back-Button"))
 //			{
 //			frontJumper.set(1.0);
@@ -477,7 +501,6 @@ public class Robot extends TimedRobot {
 	
 //		System.err.println(watch.toString());
 	}
-
 
 public void sparkDiagnostics(CANSparkMax controller) {
 
