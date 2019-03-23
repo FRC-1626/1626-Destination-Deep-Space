@@ -1,6 +1,11 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMax.IdleMode;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+
 import edu.wpi.first.wpilibj.*;
 
 //  This class was made by Heitz
@@ -16,6 +21,8 @@ public class PairOfMotors {
     int breakerPort2;
     double allowedDifference;
     double previousdifference = 0;
+    SpeedController controller1;
+    SpeedController controller2;
 
     boolean inBounds;
     long startedOut;
@@ -30,6 +37,8 @@ public class PairOfMotors {
         inBounds = true;
         startedOut = -1;
         msecAmpsDifferent = 0;
+        controller1=null;
+        controller2=null;
        }
 
     public PairOfMotors(String name, int breaker1, int breaker2, double alDiff) {
@@ -41,9 +50,36 @@ public class PairOfMotors {
         inBounds = true;
         startedOut = -1;
         msecAmpsDifferent = 0;
+        controller1=null;
+        controller2=null;
         }
 
-    public String getName() {
+        public PairOfMotors(String name, SpeedController c1, int breaker1, SpeedController c2, int breaker2) {
+
+            pairName = name;
+            breakerPort1 = breaker1;
+            breakerPort2 = breaker2;
+            allowedDifference=0.1;
+            inBounds = true;
+            startedOut = -1;
+            msecAmpsDifferent = 0;
+            controller1=c1;
+            controller2=c2;
+           }
+    
+        public PairOfMotors(String name, SpeedController c1, int breaker1, SpeedController c2, int breaker2, double alDiff) {
+    
+            pairName = name;
+            breakerPort1 = breaker1;
+            breakerPort2 = breaker2;
+            allowedDifference=alDiff;
+            inBounds = true;
+            startedOut = -1;
+            msecAmpsDifferent = 0;
+            controller1=c1;
+            controller2=c2;
+            }
+       public String getName() {
         return pairName;
     }
 
@@ -87,6 +123,25 @@ public class PairOfMotors {
         inBounds = true;
         startedOut=-1;
         msecAmpsDifferent=0;
+        
+        if (controller1 != null) {
+            initSparkMax(controller1);
+        }
+
+        if (controller2 != null) {
+            initSparkMax(controller2);
+        }
+    }
+
+    public void initSparkMax(SpeedController sc) {
+
+        if (sc instanceof CANSparkMax) {
+            CANSparkMax csm = (CANSparkMax) sc;
+            csm.restoreFactoryDefaults();
+            csm.setMotorType(MotorType.kBrushless);
+            csm.setIdleMode(IdleMode.kCoast);
+            csm.setSmartCurrentLimit(40);
+        }
     }
 
 }

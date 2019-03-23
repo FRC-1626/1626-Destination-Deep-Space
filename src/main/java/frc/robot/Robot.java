@@ -33,7 +33,7 @@ import java.util.ArrayList;
 
 FIRST Robotics Team 1626
 <Insert robot name here>
-By Jonathan Heitz, Daniel Lucash, Christopher Nokes, Benjamin Ulrich, and SJHS Falcon Robotics
+By Daniel Lucash, Christopher Nokes, Christian Muce, Benjamin Ulrich, and SJHS Falcon Robotics
 
 */
 
@@ -68,8 +68,11 @@ public class Robot extends TimedRobot {
 	private int startingPosition = 1;
 	private ActionRecorder actions;
 //	private Pixy pixycam;
+
 	private Compressor compressor;
+	private boolean compressorEnabled;
 	private AnalogInput pressureSensor;
+
 	private UsbCamera camera;
 	private CameraServer cameraServer;
 	private double previousElevator;
@@ -84,6 +87,8 @@ public class Robot extends TimedRobot {
 	private Pixy2CCC tracker;
 	private Pixy2 pixy;
 
+	private int liftRecord = 0;
+
 	Toggle backwards;
 	Toggle doMotorBreakIn = new Toggle();
 	Toggle clawState;
@@ -93,6 +98,7 @@ public class Robot extends TimedRobot {
 	private int normArmCurrent=15;
 	private int maxArmCurrent=35;
 	private int armCurrent=normArmCurrent;
+
 
 	@Override
 	public void robotInit() {
@@ -185,8 +191,8 @@ public class Robot extends TimedRobot {
 
 		motorPairList = new ArrayList<PairOfMotors>();
 
-		motorPairList.add(new PairOfMotors("LeftDrive", 14, 15));
-		motorPairList.add(new PairOfMotors("RightDrive", 0, 1));
+		motorPairList.add(new PairOfMotors("LeftDrive", frontLeftSpeed, 14, backLeftSpeed, 15));
+		motorPairList.add(new PairOfMotors("RightDrive", frontRightSpeed, 0, backRightSpeed, 1));
 		motorPairList.add(new PairOfMotors("ArmDrive", 2,3));
 		motorPairList.add(new PairOfMotors("Climb", 12,13));
 
@@ -298,8 +304,11 @@ public class Robot extends TimedRobot {
 		}
 
 		if (opControl && (matchTime < 20) && (matchTime > 0)) {
-			compressor.stop();
-			System.out.println("Stopped Compressor at " + matchTime);
+			if (compressorEnabled) {
+				compressor.stop();
+				compressorEnabled=false;
+				System.out.println("Stopped Compressor at " + matchTime);
+			}
 
 		}
 
@@ -365,6 +374,7 @@ public class Robot extends TimedRobot {
 		}
 
 		compressor.start();
+		compressorEnabled=true;
 
 
 	}
@@ -416,7 +426,6 @@ public class Robot extends TimedRobot {
 		previousElevator = elevatorAxis;
 //		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
 
-
 		int dpadAxis = (int) input.getAxis("Operator-DPad");
 		if(dpadAxis == 0) {
 			ManualElevator = 0;
@@ -430,58 +439,41 @@ public class Robot extends TimedRobot {
 			ManualElevator = 0;
 			elevator.set(ControlMode.Position, -9589);
 		}
-		if(dpadAxis == 270) {
-			ManualElevator = 0;
-			elevator.set(ControlMode.Position, -23719);
-		}
-		
-
 
 		if(input.getAxis("Operator-Left-Stick") != 0) {
 			leftArm.set(input.getAxis("Operator-Left-Stick") * 0.75);
 			rightArm.set(input.getAxis("Operator-Left-Stick") * -0.75);
-			}
+		}
 		else {
 			leftArm.set(0);
 			rightArm.set(0);
-			}
+		}
 
 		clawState.input(input.getButton("Operator-Y-Button"));
 		if(clawState.getState()) {   
 			claw.set(Value.kReverse);
-			}
+		}
 		else {
 			claw.set(Value.kForward);
-			}
+		}
 		
 		boostState.input(input.getButton("Operator-Start-Button"));
 		if(boostState.getState()) {
 			boost.set(Value.kForward);
-			}
+		}
 		else {
 			boost.set(Value.kReverse);
-			}
-
+		}
 
 		if(input.getButton("Operator-Right-Bumper")) {
 			jumperSpeed.set(-1.0);
-			}
+		}
 		else if(input.getButton("Operator-Left-Bumper")) {
 			jumperSpeed.set(1.0);
-			}
+		}
 		else {
 			jumperSpeed.set(0.0);
-			}
-	
-//		if (input.getButton("Operator-Back-Button"))
-//			{
-//			frontJumper.set(1.0);
-//			rearJumper.set(1.0);
-//			}
-//		else
-//			{
-//			jumperSpeed.set(0.0);
-//			}
+		}
 		
 		SmartDashboard.putString("Elevator Sensor Position", "" + elevator.getSelectedSensorPosition(0));
 
@@ -497,26 +489,59 @@ public class Robot extends TimedRobot {
 
 		for (PairOfMotors motorPair : motorPairList) {
 			motorPair.isCurrentDifferent();
+		}
+
+		if(dpadAxis == 270) {
+			if(liftRecord == 0) {
+				liftRecord = 1;
+				jumperSpeed.set(1);
 			}
+		}
+
+		if(liftRecord == 1) {
+			if(frontJumper.get() > 5900 && frontJumper.get() < 6100) {
+				boost.set(Value.kForward);
+				liftRecord = 2;
+			}
+		}
+		if(liftRecord == 2) {
+			if(frontJumper.get() > 8900 && frontJumper.get() < 9100) {
+				jumperSpeed.set(0);
+				drive.tankDrive(.1, .1, false);
+				liftRecord = 3;
+			}
+		}
+
+		if(liftRecord == 3) {
+			liftRecord = 3;	
+		}
+	}
+
 	
 //		System.err.println(watch.toString());
+	
+
+	public void sparkDiagnostics(CANSparkMax controller) {
+
+		int canID = controller.getDeviceId();
+
+		System.err.println("Checking faults in Spark " + canID);
+
+		for (CANSparkMax.FaultID c : CANSparkMax.FaultID.values()) {
+			if (controller.getFault(c)) {
+				System.err.println("Spark " + canID + " " + c.toString() + " SET");
+			}
+
+			if (controller.getStickyFault(c)) {
+				System.err.println("Spark " + canID + " " + c.toString() + " STICKY");
+			}
+		}
 	}
 
-public void sparkDiagnostics(CANSparkMax controller) {
-
-	int canID = controller.getDeviceId();
-
-	System.err.println("Checking faults in Spark " + canID);
-
-	for (CANSparkMax.FaultID c : CANSparkMax.FaultID.values()) {
-		if (controller.getFault(c)) {
-			System.err.println("Spark " + canID + " " + c.toString() + " SET");
-		}
-
-		if (controller.getStickyFault(c)) {
-			System.err.println("Spark " + canID + " " + c.toString() + " STICKY");
-		}
+	public void testInit() {
+		int jumpPosition = ((WPI_TalonSRX)frontJumper).getSelectedSensorPosition();
+		System.out.println("Jumper position is: " + jumpPosition);
+		((WPI_TalonSRX)frontJumper).setSelectedSensorPosition(0);
 	}
-}
 
 }
