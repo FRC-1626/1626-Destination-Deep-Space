@@ -29,6 +29,7 @@ import java.util.List;
 
 import java.util.ArrayList;
 
+
 /*	
 
 FIRST Robotics Team 1626
@@ -56,8 +57,8 @@ public class Robot extends TimedRobot {
 	private WPI_TalonSRX elevator;
 	private WPI_TalonSRX leftArm;
 	private WPI_TalonSRX rightArm;
-	private SpeedController frontJumper;
-	private SpeedController rearJumper;
+	private WPI_TalonSRX frontJumper;
+	private WPI_TalonSRX rearJumper;
 	private SpeedControllerGroup jumperSpeed;
 
 //	private TalonSRX inOutMotor1;
@@ -87,7 +88,7 @@ public class Robot extends TimedRobot {
 	private Pixy2CCC tracker;
 	private Pixy2 pixy;
 
-	private int liftRecord = 0;
+	private int liftRecord;
 
 	Toggle backwards;
 	Toggle doMotorBreakIn = new Toggle();
@@ -98,6 +99,9 @@ public class Robot extends TimedRobot {
 	private int normArmCurrent=15;
 	private int maxArmCurrent=35;
 	private int armCurrent=normArmCurrent;
+
+	private final int jumperOutTarget = 3300;
+	private final int jumperInTarget = 0;
 
 
 	@Override
@@ -284,6 +288,10 @@ public class Robot extends TimedRobot {
 	public void teleopInit() {
 		DriverInput.setRecordTime();
 		actions.teleopInit();
+
+		int jumpPosition = ((WPI_TalonSRX)frontJumper).getSelectedSensorPosition();
+		System.out.println("Jumper position is: " + jumpPosition);
+
 	}
 
 	@Override
@@ -376,6 +384,8 @@ public class Robot extends TimedRobot {
 		compressor.start();
 		compressorEnabled=true;
 
+		liftRecord=0;
+
 
 	}
 
@@ -393,7 +403,7 @@ public class Robot extends TimedRobot {
 		double rightAxis = SpeedVariable * input.getAxis("Driver-Right");
 		leftAxis = Math.abs(Math.pow(leftAxis, 3)) * leftAxis/Math.abs(leftAxis);
 		rightAxis = Math.abs(Math.pow(rightAxis, 3)) * rightAxis/Math.abs(rightAxis);
-		
+
 		backwards.input(input.getButton("Driver-Left-8"));
 		SmartDashboard.putBoolean("Backwards State", backwards.getState());
 
@@ -460,19 +470,46 @@ public class Robot extends TimedRobot {
 		boostState.input(input.getButton("Operator-Start-Button"));
 		if(boostState.getState()) {
 			boost.set(Value.kForward);
+			liftRecord = 0;
 		}
 		else {
-			boost.set(Value.kReverse);
+			if (liftRecord == 0) {
+				boost.set(Value.kReverse);
+			}
 		}
 
 		if(input.getButton("Operator-Right-Bumper")) {
-			jumperSpeed.set(-1.0);
+			liftRecord = 0;
+			int jumperPosition = ((WPI_TalonSRX)rearJumper).getSelectedSensorPosition();
+			if (jumperPosition < (jumperOutTarget - 100)) {
+				jumperSpeed.set(-1.0);
+			} else if (jumperPosition < (jumperOutTarget - 50)) {
+				jumperSpeed.set(-0.20);
+			} else if (jumperPosition > (jumperOutTarget + 10)){
+				jumperSpeed.set(0.20);
+			} else {
+				jumperSpeed.set(0);
+			}
 		}
 		else if(input.getButton("Operator-Left-Bumper")) {
-			jumperSpeed.set(1.0);
+			liftRecord = 0;
+			int jumperPosition = ((WPI_TalonSRX)rearJumper).getSelectedSensorPosition();
+			if (jumperPosition > (jumperInTarget + 100)) {
+				jumperSpeed.set(1.0);
+			} else if (jumperPosition > (jumperInTarget + 50)) {
+				jumperSpeed.set(0.20);
+			} else if (SmartDashboard.getBoolean("DB/Button 1", false)) {
+				jumperSpeed.set(0.20);
+			} else if (jumperPosition < (jumperInTarget - 10)){
+				jumperSpeed.set(0.-20);
+			} else {
+				jumperSpeed.set(0);
+			}
 		}
 		else {
-			jumperSpeed.set(0.0);
+			if(liftRecord == 0) {
+				jumperSpeed.set(0.0);
+			}
 		}
 		
 		SmartDashboard.putString("Elevator Sensor Position", "" + elevator.getSelectedSensorPosition(0));
@@ -491,32 +528,35 @@ public class Robot extends TimedRobot {
 			motorPair.isCurrentDifferent();
 		}
 
-		if(dpadAxis == 270) {
+		if((dpadAxis >= 225) && (dpadAxis <= 315)){
 			if(liftRecord == 0) {
 				liftRecord = 1;
-				jumperSpeed.set(1);
+				jumperSpeed.set(-1);
 			}
-		}
-
-		if(liftRecord == 1) {
-			if(frontJumper.get() > 5900 && frontJumper.get() < 6100) {
-				boost.set(Value.kForward);
-				liftRecord = 2;
+		
+			if(liftRecord == 1) {
+				if((rearJumper.getSelectedSensorPosition() > 300) && (rearJumper.getSelectedSensorPosition() < 320)) {
+					boost.set(Value.kForward);
+					liftRecord = 2;
+				}
 			}
-		}
-		if(liftRecord == 2) {
-			if(frontJumper.get() > 8900 && frontJumper.get() < 9100) {
+			if(rearJumper.getSelectedSensorPosition() > 3000) {
+				if(liftRecord == 2) {
+					jumperSpeed.set(0);
+					boost.set(Value.kReverse);
+					liftRecord = 3;
+				}
+			}
+		} else {
+			if (liftRecord > 0) {
 				jumperSpeed.set(0);
-				drive.tankDrive(.1, .1, false);
-				liftRecord = 3;
+				liftRecord = 0;
 			}
 		}
 
-		if(liftRecord == 3) {
-			liftRecord = 3;	
-		}
 	}
 
+//	double gay = frontLeftSpeed.get();
 	
 //		System.err.println(watch.toString());
 	
@@ -539,9 +579,14 @@ public class Robot extends TimedRobot {
 	}
 
 	public void testInit() {
-		int jumpPosition = ((WPI_TalonSRX)frontJumper).getSelectedSensorPosition();
-		System.out.println("Jumper position is: " + jumpPosition);
-		((WPI_TalonSRX)frontJumper).setSelectedSensorPosition(0);
+		((WPI_TalonSRX)rearJumper).setSelectedSensorPosition(0);
+	}
+
+	@Override
+	public void testPeriodic() {
+		int jumpPosition = ((WPI_TalonSRX)rearJumper).getSelectedSensorPosition();
+		System.err.println("Jumper position is: " + jumpPosition + "\n");
+
 	}
 
 }
