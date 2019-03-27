@@ -140,7 +140,7 @@ public class PairOfMotors {
             csm.restoreFactoryDefaults();
             csm.setMotorType(MotorType.kBrushless);
             csm.setIdleMode(IdleMode.kCoast);
-            csm.setSmartCurrentLimit(40);
+            csm.setSmartCurrentLimit(50);
         }
     }
 
