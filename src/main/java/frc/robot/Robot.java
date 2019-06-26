@@ -53,6 +53,7 @@ public class Robot extends TimedRobot {
 	private SpeedControllerGroup leftSpeed;
 	private SpeedControllerGroup rightSpeed;
 	private DifferentialDrive drive;
+
 	private WPI_TalonSRX ballHolder;
 	private WPI_TalonSRX elevator;
 	private WPI_TalonSRX leftArm;
@@ -79,6 +80,8 @@ public class Robot extends TimedRobot {
 	private double previousElevator;
 
 	private int ManualElevator = 0;
+	private int RecordSpeed = 0;
+	private int AxisRecord = 0;
 
 	private double  SpeedVariable = 1;
 
@@ -95,6 +98,7 @@ public class Robot extends TimedRobot {
 	Toggle clawState;
 	Toggle boostState;
 	Toggle dpadState;
+	Toggle ballState;
 
 	private int normArmCurrent=15;
 	private int maxArmCurrent=35;
@@ -123,6 +127,7 @@ public class Robot extends TimedRobot {
 		clawState = new Toggle();
 		boostState = new Toggle();
 		dpadState = new Toggle();
+		ballState = new Toggle();
 
 		System.out.println("initializing actions...");
 		actions = new ActionRecorder().
@@ -152,6 +157,7 @@ public class Robot extends TimedRobot {
 		DriverInput.nameInput("Elevator-Back");
 		DriverInput.nameInput("Operator-DPad");
 		DriverInput.nameInput("Driver-Left-8");
+		DriverInput.nameInput("Operator-Right-Stick");
 
 		frontLeftSpeed		= new CANSparkMax(14, MotorType.kBrushless);
 		backLeftSpeed		= new CANSparkMax(15, MotorType.kBrushless);
@@ -265,13 +271,15 @@ public class Robot extends TimedRobot {
 		gameData = DriverStation.getInstance().getGameSpecificMessage();
 		actions.autonomousInit("LLL");
 
+		ballState.setState(false);
   	}
 
 	@Override
 	public void autonomousPeriodic() {
 	
+		boolean doAutonomous = false;
 		try{
-			if ((actions != null) && actions.hasInputs()) {
+			if ( doAutonomous && (actions != null) && actions.hasInputs() ) {
 				actions.longPlayback(this, -1);
 			}
 			else {
@@ -292,6 +300,7 @@ public class Robot extends TimedRobot {
 		int jumpPosition = ((WPI_TalonSRX)frontJumper).getSelectedSensorPosition();
 		System.out.println("Jumper position is: " + jumpPosition);
 
+		ballState.setState(true);
 	}
 
 	@Override
@@ -344,6 +353,7 @@ public class Robot extends TimedRobot {
 				.withInput("Driver-Left-7", 		driverLeft.getRawButton(7)) // used - speed changer one
 				.withInput("Driver-Left-6", 		driverLeft.getRawButton(6)) // used - speed changer two
 				.withInput("Operator-Left-Stick",	xbox.getY(Hand.kLeft)) // used - arm movement
+				.withInput("Operator-Right-Stick", xbox.getRawButton(10))
 			);	
 		
 		} catch (IllegalAccessException e) {
@@ -412,14 +422,33 @@ public class Robot extends TimedRobot {
 
 //		SmartDashboard.putString("DB/String 0", Double.toString(DriverStation.getInstance().getMatchTime()));
 
+/*		
+		double leftAxisRecord = input.getAxis("Driver-Left");
+		double rightAxisRecord = input.getAxis("Driver-Right");
+		if(Math.abs(leftAxisRecord +rightAxisRecord) >= 1.2) {
+			AxisRecord = 0;
+		} else {
+			AxisRecord = 1;
+		}
+		if(RecordSpeed == 1) {
+			if(AxisRecord == 1) {
+				SpeedVariable = 1;
+			} else {
+				SpeedVariable = .65;
+			}
+		}
 		if(input.getButton("Driver-Left-6")) {
-			SpeedVariable = .25;
+			SpeedVariable = .65;
+			RecordSpeed = 1;
 		}
 		if(input.getButton("Driver-Left-7")) {
 			SpeedVariable = 1;
+			RecordSpeed = 0;
 		}
+*/
+// Above code is for unused drive train speed control
 
-		double elevatorAxis = input.getAxis("Elevator-Forward") - input.getAxis("Elevator-Back");
+	double elevatorAxis = input.getAxis("Elevator-Forward") - input.getAxis("Elevator-Back");
 		if (Math.abs(elevatorAxis) > 0.10) {
 			ManualElevator = 1;
 //			if (Math.abs(previousElevator) < 0.10) elevatorBrake.set (Value.kForward);
@@ -514,14 +543,22 @@ public class Robot extends TimedRobot {
 		
 		SmartDashboard.putString("Elevator Sensor Position", "" + elevator.getSelectedSensorPosition(0));
 
+		ballState.input(input.getButton("Operator-Right-Stick"));
+			
 		if (input.getButton("Operator-X-Button")) {
 			ballHolder.set(1.0);
 		} else if (input.getButton("Operator-A-Button")) {
 			ballHolder.set(-.50);
 		} else if (input.getButton("Operator-B-Button")) {
-			ballHolder.set(-1.0);
+			ballHolder.set(-.70);
 		} else {
-			ballHolder.set(0.0);
+			double ballSpeed=0.0;
+			if (ballState.getState()) {
+				ballSpeed=0.15;
+			} else {
+				ballSpeed=0.0;
+			}
+			ballHolder.set(ballSpeed);
 		}
 
 		for (PairOfMotors motorPair : motorPairList) {
